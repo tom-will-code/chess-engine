@@ -91,12 +91,17 @@ def main():
         return panel_surface
     
     def draw_pieces(board_state): # draws pieces according to board state
-        for row in range(8):
-            for col in range(8):
-                piece = board_state[row][col]
-                if piece: # executes if entry is not None
-                    screen.blit(image_dict[piece],(square_width*col,square_width*row))
         if dragging_piece:
+            row_intl, col_intl = initial_piece_position
+            for row in range(8):
+                for col in range(8):
+                    piece = board_state[row][col]
+                    on_initial_square = row_intl == row and col_intl == col
+                    # executes if there is a piece and we are not on the square that the dragged
+                    # piece is from
+                    if piece and not on_initial_square:
+                        screen.blit(image_dict[piece],(square_width*col,square_width*row))  
+            
             mouse_x, mouse_y = pg.mouse.get_pos()
             img = image_dict[dragging_piece]
             screen.blit(
@@ -104,6 +109,13 @@ def main():
                 (mouse_x - square_width // 2, # this math ensures piece is rendered with
                 mouse_y - square_width // 2)  # cursor in middle of the piece
                 )
+        else:
+            for row in range(8):
+                for col in range(8):
+                    piece = board_state[row][col]
+                    if piece: # executes if entry is not None
+                        screen.blit(image_dict[piece],(square_width*col,square_width*row))
+
     
     def get_current_square(position): # gets location of square in board state matrix from mouse position
         x, y = position
@@ -135,7 +147,6 @@ def main():
                     if piece: # If we have clicked an empty square, won't run
                         initial_piece_position = (row, col)
                         dragging_piece = piece
-                        board_state[row][col] = None
             
             # Logic for putting down a piece
             elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
@@ -143,6 +154,8 @@ def main():
                     clicked_square = get_current_square(event.pos)
                     if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square):
                         row, col = clicked_square
+                        row_intl, col_intl = initial_piece_position
+                        board_state[row_intl][col_intl] = None
                     else:
                         row, col = initial_piece_position
                     
