@@ -24,6 +24,7 @@ def main():
     ]
     dragging_piece = None # Piece currently being dragged
     initial_piece_position = None # Location on board piece is dragged from
+    is_whites_move = True
 
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
@@ -152,16 +153,20 @@ def main():
             elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
                 if dragging_piece:
                     clicked_square = get_current_square(event.pos)
-                    if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square):
+                    # Runs if move is legal
+                    if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square,is_whites_move):
                         row, col = clicked_square
                         row_intl, col_intl = initial_piece_position
                         board_state[row_intl][col_intl] = None
+                        is_whites_move = not is_whites_move
+                    # Runs for snapback to initial position
                     else:
                         row, col = initial_piece_position
                     
-                    board_state[row][col] = dragging_piece
+                    board_state[row][col] = dragging_piece # snaps dragged piece into appropriate postion
                     dragging_piece = None
                     initial_piece_position = None
+                    
 
         # Clear screen
         screen.fill("white")
