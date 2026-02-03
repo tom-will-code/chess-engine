@@ -7,7 +7,7 @@ def main():
     # Setup
     board_width = 800 # Width of chess board (always do mult. of 8 so squares have int size)
     panel_width = 200 # Width of sidebar
-    screen_width, screen_height = board_width + panel_width, board_width
+    screen_width, screen_height = board_width + panel_width, board_width # defines screen dimmensions
     screen = pg.display.set_mode((screen_width,screen_height))
     clock = pg.time.Clock()
     running = True
@@ -21,6 +21,8 @@ def main():
         ["P"]*8,                             # White pawns
         ["R","N","B","Q","K","B","N","R"]  # White back rank
     ]
+    dragging_piece = None # Piece currently being dragged
+    initial_piece_position = None # Location on board piece is dragged from
 
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
@@ -93,6 +95,15 @@ def main():
                 piece = board_state[i][j]
                 if piece: # executes if entry is not None
                     screen.blit(image_dict[piece],(square_width*j,square_width*i))
+    
+    def get_current_square(position): # gets location of square in board state matrix from mouse position
+        x, y = position
+        if x < board_width and y < board_width:
+            board_row = y // square_width # int division rounds down to give us correct indices
+            board_col = 8*x // square_width
+            return board_row, board_col
+        else:
+            return None
 
     # Create surfaces
     board_surface = create_board_surface()
