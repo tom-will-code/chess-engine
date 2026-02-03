@@ -146,8 +146,13 @@ def main():
                     row, col = clicked_square
                     piece = board_state[row][col] 
                     if piece: # If we have clicked an empty square, won't run
-                        initial_piece_position = (row, col)
-                        dragging_piece = piece
+                        white_moving = piece.isupper() and is_whites_move 
+                        black_moving = piece.islower() and not is_whites_move
+                        correct_turn = white_moving or black_moving # true if trying to drag a piece on a correct turn
+                        if correct_turn:
+                            initial_piece_position = (row, col)
+                            dragging_piece = piece
+                        
             
             # Logic for putting down a piece
             elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
