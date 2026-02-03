@@ -1,4 +1,5 @@
 import pygame as pg
+from moves import is_legal_move
 
 def main():
     # Initialise pygame
@@ -140,13 +141,12 @@ def main():
             elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
                 if dragging_piece:
                     clicked_square = get_current_square(event.pos)
-                    if clicked_square:
+                    if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square):
                         row, col = clicked_square
-                        board_state[row][col] = dragging_piece
                     else:
                         row, col = initial_piece_position
-                        board_state[row][col] = dragging_piece
                     
+                    board_state[row][col] = dragging_piece
                     dragging_piece = None
                     initial_piece_position = None
 
