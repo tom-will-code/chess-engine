@@ -164,12 +164,9 @@ def main():
                         row, col = clicked_square
                         row_intl, col_intl = initial_piece_position
                         board_state[row_intl][col_intl] = None
+                        board_state[row][col] = dragging_piece
                         is_whites_move = not is_whites_move
-                    # Runs for snapback to initial position
-                    else:
-                        row, col = initial_piece_position
                     
-                    board_state[row][col] = dragging_piece # snaps dragged piece into appropriate postion
                     dragging_piece = None
                     initial_piece_position = None
                     

@@ -7,6 +7,9 @@ def sign(number):
     else:
         return 0
 
+def is_square_on_board(row,col):
+    return 0 <= row <= 7 and 0 <= col <= 7
+
 def is_path_clear(board_state, start_sqr, end_sqr):
     start_row, start_col = start_sqr
     end_row, end_col = end_sqr
@@ -25,7 +28,7 @@ def is_path_clear(board_state, start_sqr, end_sqr):
     return True
 
 
-def is_legal_move(board_state, start_sqr, end_sqr):
+def is_psuedo_legal_move(board_state, start_sqr, end_sqr):
     start_row, start_col = start_sqr
     end_row, end_col = end_sqr
     row_dif = end_row - start_row
@@ -77,6 +80,61 @@ def is_legal_move(board_state, start_sqr, end_sqr):
         # King movement rules
         elif moving_piece in ('k','K'):
             return max(abs(row_dif), abs(col_dif)) == 1
+        
+def is_in_check(board_state,start_sqr,end_sqr):
+    start_row, start_col = start_sqr
+    end_row, end_col = end_sqr
+    moving_piece = board_state[start_row][start_col]
+    
+    # looks for checks if king has moved
+    if moving_piece in ('k','K'):
+        # board_copy = board_state <---- not this because lists are mutable objects
+        board_copy = [row[:] for row in board_state] #CHANGE CODE SO BOARD NOT CHANGED AT ALL
+        board_copy[start_row][start_col] = None
+        board_copy[end_row][end_col] = moving_piece
+        king_is_white = moving_piece.isupper()
+        forward_direction = -1 if king_is_white else 1 # row direction that is forward for king
+        
+        # looks for bishop, pawn and queen checks
+        for row_direction in [-1, 1]:
+            for col_direction in [-1, 1]:
+                check_row = end_row + row_direction # king has moved to end square
+                check_col = end_col + col_direction
+                keep_checking = True
+                while keep_checking:
+                    if is_square_on_board(check_row,check_col):
+                        detected_piece = board_copy[check_row][check_col]
+                        if detected_piece:
+                            if king_is_white == detected_piece.isupper():
+                                break
+                            else:
+                                if detected_piece.lower() in ('b','q'):
+                                    return True
+                                elif detected_piece.lower() == 'p':
+                                    if forward_direction == check_row - end_row:
+                                        return True
+                                    else:
+                                        break
+                                else:
+                                    break
+
+                        else:
+                            check_row += row_direction
+                            check_col += col_direction
+                    else:
+                        break
+    # Looks for checks if king hasn't moved
+    else:
+        return False # returns false for now
+
+
+
+
+def is_legal_move(board_state,start_sqr,end_sqr):
+    if is_psuedo_legal_move(board_state,start_sqr,end_sqr):
+        return not is_in_check(board_state,start_sqr,end_sqr)
+    else:
+        return False
 
 
     
