@@ -58,8 +58,11 @@ def is_legal_move(board_state, start_sqr, end_sqr):
                 return is_path_clear(board_state,start_sqr,end_sqr) 
             else:
                 return False
+        # Knight movement rules
+        elif moving_piece in ('n','N'):
+            return (abs(row_dif) == 2 and abs(col_dif) == 1) or (abs(col_dif)==2 and abs(row_dif)==1)
 
-        
+
         else:
             return True
 

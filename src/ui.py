@@ -10,6 +10,7 @@ def main():
     panel_width = 200 # Width of sidebar
     screen_width, screen_height = board_width + panel_width, board_width # defines screen dimmensions
     screen = pg.display.set_mode((screen_width,screen_height))
+    pg.display.set_caption("BasicCarp") # sets window title
     clock = pg.time.Clock()
     running = True
     board_state = board_state = [
