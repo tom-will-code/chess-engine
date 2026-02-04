@@ -52,7 +52,12 @@ def is_legal_move(board_state, start_sqr, end_sqr):
                 return is_path_clear(board_state,start_sqr,end_sqr)
             else:
                 return False
-            
+        # Rook movement rules
+        elif moving_piece in ('r','R'):
+            if col_dif == 0 or row_dif == 0:
+                return is_path_clear(board_state,start_sqr,end_sqr) 
+            else:
+                return False
 
         
         else:
