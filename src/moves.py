@@ -28,6 +28,8 @@ def is_path_clear(board_state, start_sqr, end_sqr):
 def is_legal_move(board_state, start_sqr, end_sqr):
     start_row, start_col = start_sqr
     end_row, end_col = end_sqr
+    row_dif = end_row - start_row
+    col_dif = end_col - start_col
     moving_piece = board_state[start_row][start_col]
     target = board_state[end_row][end_col]
 
@@ -38,15 +40,21 @@ def is_legal_move(board_state, start_sqr, end_sqr):
     else:
         # Bishop movement rules
         if moving_piece in ('b','B'):
-            row_dif = end_row - start_row
-            col_dif = end_col - start_col
             if abs(col_dif) == abs(row_dif):
-                if is_path_clear(board_state,start_sqr,end_sqr):
-                    return True
-                else:
-                    return False
+                return is_path_clear(board_state,start_sqr,end_sqr)
             else:
                 return False   
+        # Queen movement rules
+        elif moving_piece in ('q','Q'):
+            if abs(col_dif) == abs(row_dif):
+                return is_path_clear(board_state,start_sqr,end_sqr)
+            elif col_dif == 0 or row_dif == 0:
+                return is_path_clear(board_state,start_sqr,end_sqr)
+            else:
+                return False
+            
+
+        
         else:
             return True
 
