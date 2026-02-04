@@ -159,7 +159,7 @@ def main():
                 if dragging_piece:
                     clicked_square = get_current_square(event.pos)
                     # Runs if move is legal
-                    if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square,is_whites_move):
+                    if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square):
                         row, col = clicked_square
                         row_intl, col_intl = initial_piece_position
                         board_state[row_intl][col_intl] = None
