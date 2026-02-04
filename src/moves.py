@@ -1,10 +1,35 @@
 
+def sign(number):
+    if number > 0:
+        return 1
+    elif number < 0:
+        return -1
+    else:
+        return 0
+
+def is_path_clear(board_state, start_sqr, end_sqr):
+    start_row, start_col = start_sqr
+    end_row, end_col = end_sqr
+    row_dif = end_row - start_row
+    col_dif = end_col - start_col
+    row_step = sign(row_dif)
+    col_step = sign(col_dif)
+    
+    checking_square = (start_row+row_step,start_col+col_step)
+    while checking_square != end_sqr:
+        check_row, check_col = checking_square
+        if board_state[check_row][check_col]:
+            return False
+        else:
+            checking_square = (check_row+row_step,check_col+col_step)
+    return True
+
+
 def is_legal_move(board_state, start_sqr, end_sqr):
     start_row, start_col = start_sqr
     end_row, end_col = end_sqr
     moving_piece = board_state[start_row][start_col]
     target = board_state[end_row][end_col]
-
 
     if start_sqr == end_sqr: # stops moves from the same square to the same square 
         return False
@@ -16,19 +41,10 @@ def is_legal_move(board_state, start_sqr, end_sqr):
             row_dif = end_row - start_row
             col_dif = end_col - start_col
             if abs(col_dif) == abs(row_dif):
-                # defines direction of step in bishop movement
-                row_step = row_dif // abs(row_dif)
-                col_step = col_dif // abs(col_dif)
-                # checks squares in path for other pieces
-                checking_square = (start_row+row_step,start_col+col_step)
-                while checking_square != end_sqr:
-                    check_row, check_col = checking_square
-                    if board_state[check_row][check_col]:
-                        return False
-                    else:
-                        checking_square = (check_row+row_step,check_col+col_step)
-                # returns True if path is clear
-                return True
+                if is_path_clear(board_state,start_sqr,end_sqr):
+                    return True
+                else:
+                    return False
             else:
                 return False   
         else:
