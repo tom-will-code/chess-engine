@@ -61,6 +61,20 @@ def is_legal_move(board_state, start_sqr, end_sqr):
         # Knight movement rules
         elif moving_piece in ('n','N'):
             return (abs(row_dif) == 2 and abs(col_dif) == 1) or (abs(col_dif)==2 and abs(row_dif)==1)
+        # Pawn movement rules
+        elif moving_piece in ('p','P'):
+            forward_unit = -1 if moving_piece == 'P' else 1
+            starting_rank = 6 if moving_piece == 'P' else 1
+
+            if col_dif == 0 and not target:
+                if row_dif == forward_unit:
+                   return True
+                elif row_dif == 2*forward_unit:
+                   return start_row == starting_rank and not board_state[start_row+forward_unit][start_col]
+                else:
+                    return False
+            return abs(col_dif) == 1 and row_dif == forward_unit and target
+       
 
 
         else:
