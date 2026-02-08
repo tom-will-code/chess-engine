@@ -1,11 +1,13 @@
 import pygame as pg
-from moves import is_legal_move
+from engine import Game
 
 def main():
     # Initialise pygame
     pg.init()
 
     # Setup
+    # -----------------------------------------------------------------
+    game = Game() # initialises game class
     board_width = 800 # Width of chess board (always do mult. of 8 so squares have int size)
     panel_width = 200 # Width of sidebar
     screen_width, screen_height = board_width + panel_width, board_width # defines screen dimmensions
@@ -13,19 +15,9 @@ def main():
     pg.display.set_caption("BasicCarp") # sets window title
     clock = pg.time.Clock()
     running = True
-    board_state = board_state = [
-        ["r","n","b","q","k","b","n","r"],  # Black back rank
-        ["p"]*8,                             # Black pawns
-        [None]*8,                            
-        [None]*8,
-        [None]*8,
-        [None]*8,
-        ["P"]*8,                             # White pawns
-        ["R","N","B","Q","K","B","N","R"]  # White back rank
-    ]
+
     dragging_piece = None # Piece currently being dragged
     initial_piece_position = None # Location on board piece is dragged from
-    is_whites_move = True
 
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
@@ -63,7 +55,9 @@ def main():
         image_dict[key] = pg.transform.smoothscale(img,(square_width,square_width))
 
     # Define functions
-    def create_board_surface(): # Creates the chess board surface
+    # ---------------------------------------------------------
+    # Creates the chess board background surface
+    def create_board_surface(): 
         board_surface = pg.Surface((board_width,board_width))
         light_colour = "white"
         dark_colour = "brown"
@@ -84,6 +78,7 @@ def main():
         
         return board_surface
     
+   # creates the side panel surface
     def create_side_panel_surface(): # creates the side panel surface
         panel_surface = pg.Surface((panel_width,board_width))
         background_colour = "gray"
@@ -92,18 +87,22 @@ def main():
 
         return panel_surface
     
-    def draw_pieces(board_state): # draws pieces according to board state
+    # Draws the board each frame according to game state from engine and ui dragging info
+    def draw_pieces(): # draws pieces according to board state
+        
+        # draws board if we are dragging a piece
         if dragging_piece:
             row_intl, col_intl = initial_piece_position
             for row in range(8):
                 for col in range(8):
-                    piece = board_state[row][col]
+                    piece = game.piece_at((row,col))
                     on_initial_square = row_intl == row and col_intl == col
                     # executes if there is a piece and we are not on the square that the dragged
                     # piece is from
                     if piece and not on_initial_square:
                         screen.blit(image_dict[piece],(square_width*col,square_width*row))  
             
+            # Gets mouse posiion and draws dragging piece at mouse position
             mouse_x, mouse_y = pg.mouse.get_pos()
             img = image_dict[dragging_piece]
             screen.blit(
@@ -111,15 +110,16 @@ def main():
                 (mouse_x - square_width // 2, # this math ensures piece is rendered with
                 mouse_y - square_width // 2)  # cursor in middle of the piece
                 )
+        # draws board if we are not dragging a piece
         else:
             for row in range(8):
                 for col in range(8):
-                    piece = board_state[row][col]
+                    piece = game.piece_at((row,col))
                     if piece: # executes if entry is not None
                         screen.blit(image_dict[piece],(square_width*col,square_width*row))
 
-    
-    def get_current_square(position): # gets location of square in board state matrix from mouse position
+    # gets location of square in board state matrix from mouse position
+    def get_current_square(position): 
         x, y = position
         if x < board_width and y < board_width:
             board_row = y // square_width # int division rounds down to give us correct indices
@@ -128,11 +128,14 @@ def main():
         else:
             return None
 
-    # Create surfaces
+    
+    # Create surfaces before running game loop
+    # ----------------------------------------------------------------
     board_surface = create_board_surface()
     panel_surface = create_side_panel_surface()
 
     # Start game loop
+    # ----------------------------------------------------------------
     while running:
         # Checks for events in each frame
         for event in pg.event.get():
@@ -144,14 +147,13 @@ def main():
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 clicked_square = get_current_square(event.pos)
                 if clicked_square: # If func returns None, falsy so will not run
-                    row, col = clicked_square
-                    piece = board_state[row][col] 
+                    piece = game.piece_at(clicked_square) 
                     if piece: # If we have clicked an empty square, won't run
-                        white_moving = piece.isupper() and is_whites_move 
-                        black_moving = piece.islower() and not is_whites_move
+                        white_moving = piece.isupper() and game.is_whites_move 
+                        black_moving = piece.islower() and not game.is_whites_move
                         correct_turn = white_moving or black_moving # true if trying to drag a piece on a correct turn
                         if correct_turn:
-                            initial_piece_position = (row, col)
+                            initial_piece_position = clicked_square
                             dragging_piece = piece
                         
             
@@ -159,14 +161,12 @@ def main():
             elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
                 if dragging_piece:
                     clicked_square = get_current_square(event.pos)
-                    # Runs if move is legal
-                    if clicked_square and is_legal_move(board_state,initial_piece_position,clicked_square):
-                        row, col = clicked_square
-                        row_intl, col_intl = initial_piece_position
-                        board_state[row_intl][col_intl] = None
-                        board_state[row][col] = dragging_piece
-                        is_whites_move = not is_whites_move
-                    
+                    # Makes move if legal
+                    if clicked_square and game.is_legal_move(initial_piece_position,clicked_square):
+                        # Updates game state
+                        game.make_move(initial_piece_position,clicked_square)
+                        
+                    # Stops dragging piece
                     dragging_piece = None
                     initial_piece_position = None
                     
@@ -177,7 +177,7 @@ def main():
         # Render objects
         screen.blit(board_surface,(0,0))
         screen.blit(panel_surface,(board_width,0))
-        draw_pieces(board_state)
+        draw_pieces()
         
         # Displays objects on screen
         pg.display.flip()
