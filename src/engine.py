@@ -12,6 +12,8 @@ class Game:
         ["R","N","B","Q","K","B","N","R"]  # White back rank
         ]
         self.is_whites_move = True
+        self.K_position = (7,4)
+        self.k_position = (0,4)
     
     # Gets piece at a given board sqaure
     def piece_at(self,square):
@@ -27,8 +29,13 @@ class Game:
         
     # Updates game by making a move (that has already been checked to be legal)
     def make_move(self,start_sqr,end_sqr):
-        # Updates board
         piece = self.piece_at(start_sqr)
+        # updates king positions if we have a king move
+        if piece == 'k':
+            self.k_position = end_sqr
+        elif piece == 'K':
+            self.K_position = end_sqr
+        # Updates board
         self._update_square(end_sqr,piece)
         self._update_square(start_sqr,None)
         # Updates move status
@@ -37,7 +44,7 @@ class Game:
 
         
     # Helper functions
-    # -----------------------------------------------
+    # --------------------------------------------------------------
     # Used to help define forward and backward directions for pawns
     def _sign(self,number):
         if number > 0:
@@ -63,7 +70,7 @@ class Game:
         checking_square = (start_row+row_step,start_col+col_step)
         while checking_square != end_sqr:
             check_row, check_col = checking_square
-            if self.board_state[check_row][check_col]:
+            if self.piece_at(checking_square):
                 return False
             else:
                 checking_square = (check_row+row_step,check_col+col_step)
@@ -75,8 +82,8 @@ class Game:
         end_row, end_col = end_sqr
         row_dif = end_row - start_row
         col_dif = end_col - start_col
-        moving_piece = self.board_state[start_row][start_col]
-        target = self.board_state[end_row][end_col]
+        moving_piece = self.piece_at(start_sqr)
+        target = self.piece_at(end_sqr)
 
         if start_sqr == end_sqr: # stops moves from the same square to the same square 
             return False
@@ -131,7 +138,7 @@ class Game:
         
         # looks for checks if king has moved
         if moving_piece in ('k','K'):
-            # board_copy = board_state <---- not this because lists are mutable objects
+            # board_copy = self.board_state <---- not this because lists are mutable objects
             board_copy = [row[:] for row in self.board_state] #CHANGE CODE SO BOARD NOT CHANGED AT ALL
             board_copy[start_row][start_col] = None
             board_copy[end_row][end_col] = moving_piece
