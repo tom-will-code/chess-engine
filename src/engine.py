@@ -156,7 +156,7 @@ class Game:
         # defines direction that is forward for king
         forward_direction = -1 if king_is_white else 1 # row direction that is forward for king
         
-        # looks for bishop, pawn and diagonal queen checks
+        # looks for bishop, pawn and diagonal king and queen checks
         for row_direction in [-1, 1]:
             for col_direction in [-1, 1]:
                 check_row = king_row + row_direction
@@ -174,6 +174,11 @@ class Game:
                             else:
                                 if detected_piece.lower() in ('b','q'):
                                     return True
+                                elif detected_piece.lower() == 'k':
+                                    if abs(check_row-king_row) == 1:
+                                        return True
+                                    else:
+                                        break
                                 elif detected_piece.lower() == 'p':
                                     if forward_direction == check_row - king_row: # checks pawn is one square ahead
                                         return True
