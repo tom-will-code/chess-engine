@@ -156,21 +156,37 @@ class Game:
         # defines direction that is forward for king
         forward_direction = -1 if king_is_white else 1 # row direction that is forward for king
         
-        # looks for bishop, pawn and diagonal king and queen checks
-        for row_direction in [-1, 1]:
-            for col_direction in [-1, 1]:
-                check_row = king_row + row_direction
-                check_col = king_col + col_direction
-                while True:
-                    # checks if we are checking a valid square on the board
-                    if self._is_square_on_board(check_row,check_col):
-                        detected_piece = board_copy[check_row][check_col]
-                        # checks if square non-empty
-                        if detected_piece:
-                            # breaks while loop if detects a piece of the same colour
-                            if king_is_white == detected_piece.isupper():
-                                break
-                            # checks if detected opposing bish, pawn or queen is checking king
+        # looks for checks except for knight checks
+        directions = [(1,1),(-1,1),(-1,-1),(1,-1),(1,0),(-1,0),(0,1),(0,-1)]
+        for direction in directions:
+            row_direction = direction[0]
+            col_direction = direction[1]
+            
+            # checks out all valid square in the given directions
+            check_row = king_row + row_direction
+            check_col = king_col + col_direction
+            while True:
+                # checks if we are checking a valid square on the board
+                if self._is_square_on_board(check_row,check_col):
+                    detected_piece = board_copy[check_row][check_col]
+                    # checks if square non-empty
+                    if detected_piece:
+                        # breaks while loop if detects a piece of the same colour
+                        if king_is_white == detected_piece.isupper():
+                            break
+                        else:
+                            # runs if we are on a rook direction
+                            if min(abs(row_direction),abs(col_direction)) == 0:
+                                if detected_piece.lower() in ('r','q'):
+                                    return True
+                                elif detected_piece.lower() == 'k':
+                                    if abs(check_row-king_row) == 1 or abs(check_col-king_col) == 1:
+                                        return True
+                                    else:
+                                        break
+                                else:
+                                    break
+                            # runs if we are on a bishop direction
                             else:
                                 if detected_piece.lower() in ('b','q'):
                                     return True
@@ -186,13 +202,15 @@ class Game:
                                         break
                                 else:
                                     break
-                        # if no pieces are detected, continues to next square
-                        else:
-                            check_row += row_direction
-                            check_col += col_direction
-                    # break while loop when we reach end of board in one direction
+                    # if no pieces are detected, continues to next square
                     else:
-                        break
+                        check_row += row_direction
+                        check_col += col_direction
+                # break while loop when we reach end of board in one direction
+                else:
+                    break
+        # returns true if no checks detected
+        return False
        
     
     # Updates a square on chosen board, updates game state board by default
