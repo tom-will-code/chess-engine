@@ -20,10 +20,25 @@ class Game:
         row, col = square
         return self.board_state[row][col]
     
+    # Creates a copy of the board state for actions like testing moves
+    def get_board_copy(self):
+        return [row[:] for row in self.board_state]
+    
     # Checks if a move is legal
     def is_legal_move(self,start_sqr,end_sqr):
+        # checks if move is legal without accounting for checks
         if self._is_pseudo_legal_move(start_sqr,end_sqr):
-            return not self._is_in_check(start_sqr,end_sqr)
+            # Gets what kings position would be after the move
+            if start_sqr == self.k_position or start_sqr == self.K_position:
+                king_position = end_sqr
+            else:
+                king_position = self.K_position if self.is_whites_move else self.k_position
+            # Creates board copy and makes the move on this board then looks for checks
+            moving_piece = self.piece_at(start_sqr)
+            board_copy = self.get_board_copy()
+            self._apply_move(start_sqr,end_sqr,moving_piece,board_copy)
+            return not self._is_in_check(king_position,board_copy)
+        # move was not pseudolegal so cannot be made
         else:
             return False
         
@@ -36,8 +51,7 @@ class Game:
         elif piece == 'K':
             self.K_position = end_sqr
         # Updates board
-        self._update_square(end_sqr,piece)
-        self._update_square(start_sqr,None)
+        self._apply_move(start_sqr,end_sqr,piece)
         # Updates move status
         self.is_whites_move = not self.is_whites_move
 
@@ -131,54 +145,60 @@ class Game:
                 return max(abs(row_dif), abs(col_dif)) == 1
             
     # checks if the king is in check after a move (currently unfinished)
-    def _is_in_check(self,start_sqr,end_sqr):
-        start_row, start_col = start_sqr
-        end_row, end_col = end_sqr
-        moving_piece = self.board_state[start_row][start_col]
+    def _is_in_check(self,king_position,board_copy):
+        # defines king position
+        king_row, king_col = king_position
         
-        # looks for checks if king has moved
-        if moving_piece in ('k','K'):
-            # board_copy = self.board_state <---- not this because lists are mutable objects
-            board_copy = [row[:] for row in self.board_state] #CHANGE CODE SO BOARD NOT CHANGED AT ALL
-            board_copy[start_row][start_col] = None
-            board_copy[end_row][end_col] = moving_piece
-            king_is_white = moving_piece.isupper()
-            forward_direction = -1 if king_is_white else 1 # row direction that is forward for king
-            
-            # looks for bishop, pawn and queen checks
-            for row_direction in [-1, 1]:
-                for col_direction in [-1, 1]:
-                    check_row = end_row + row_direction # king has moved to end square
-                    check_col = end_col + col_direction
-                    keep_checking = True
-                    while keep_checking:
-                        if self._is_square_on_board(check_row,check_col):
-                            detected_piece = board_copy[check_row][check_col]
-                            if detected_piece:
-                                if king_is_white == detected_piece.isupper():
-                                    break
-                                else:
-                                    if detected_piece.lower() in ('b','q'):
+        # determines king colour
+        king_piece = board_copy[king_row][king_col]
+        king_is_white = king_piece.isupper()
+
+        # defines direction that is forward for king
+        forward_direction = -1 if king_is_white else 1 # row direction that is forward for king
+        
+        # looks for bishop, pawn and diagonal queen checks
+        for row_direction in [-1, 1]:
+            for col_direction in [-1, 1]:
+                check_row = king_row + row_direction
+                check_col = king_col + col_direction
+                while True:
+                    # checks if we are checking a valid square on the board
+                    if self._is_square_on_board(check_row,check_col):
+                        detected_piece = board_copy[check_row][check_col]
+                        # checks if square non-empty
+                        if detected_piece:
+                            # breaks while loop if detects a piece of the same colour
+                            if king_is_white == detected_piece.isupper():
+                                break
+                            # checks if detected opposing bish, pawn or queen is checking king
+                            else:
+                                if detected_piece.lower() in ('b','q'):
+                                    return True
+                                elif detected_piece.lower() == 'p':
+                                    if forward_direction == check_row - king_row: # checks pawn is one square ahead
                                         return True
-                                    elif detected_piece.lower() == 'p':
-                                        if forward_direction == check_row - end_row:
-                                            return True
-                                        else:
-                                            break
                                     else:
                                         break
-
-                            else:
-                                check_row += row_direction
-                                check_col += col_direction
+                                else:
+                                    break
+                        # if no pieces are detected, continues to next square
                         else:
-                            break
-        # Looks for checks if king hasn't moved
-        else:
-            return False # returns false for now
+                            check_row += row_direction
+                            check_col += col_direction
+                    # break while loop when we reach end of board in one direction
+                    else:
+                        break
+       
     
-    # Updates a square on the board, currently a helper function used in make moves
-    def _update_square(self,square,piece):
+    # Updates a square on chosen board, updates game state board by default
+    def _update_square(self,square,piece,board=None):
         row, col = square
-        self.board_state[row][col] = piece
-        
+        if not board:
+            self.board_state[row][col] = piece
+        else:
+            board[row][col] = piece
+
+    # Applies a move to a board without updating any flags like changing is_whites_turn, updates game board by default
+    def _apply_move(self,start_sqr,end_sqr,piece,board=None):
+        self._update_square(end_sqr,piece,board)
+        self._update_square(start_sqr,None,board)
