@@ -20,9 +20,12 @@ class Game:
         self.k_can_castle_queenside = True
     
     # Gets piece at a given board sqaure
-    def piece_at(self,square):
+    def piece_at(self,square,board=None):
         row, col = square
-        return self.board_state[row][col]
+        if board is None:
+            return self.board_state[row][col]
+        else:
+            return board[row][col]
     
     # Creates a copy of the board state for actions like testing moves
     def get_board_copy(self):
@@ -69,6 +72,19 @@ class Game:
                 self.K_can_castle_kingside = False
             elif self.K_can_castle_queenside and start_sqr == (7,0):
                 self.K_can_castle_queenside = False
+        
+        # updates castling rights if we have a rook capture
+        taken_piece = self.piece_at(end_sqr)
+        if taken_piece and taken_piece.lower() == 'r': # if taken_piece stops crash when we have an empty square
+            if self.k_can_castle_kingside and end_sqr == (0,7):
+                self.k_can_castle_kingside = False
+            elif self.k_can_castle_queenside and end_sqr == (0,0):
+                self.k_can_castle_queenside = False
+            elif self.K_can_castle_kingside and end_sqr == (7,7):
+                self.K_can_castle_kingside = False
+            elif self.K_can_castle_queenside and end_sqr == (7,0):
+                self.K_can_castle_queenside = False
+
         # Updates board
         self._apply_move(start_sqr,end_sqr,piece)
         # Updates move status
@@ -235,8 +251,8 @@ class Game:
             check_row = king_row + row_direction
             check_col = king_col + col_direction
             # checks if we are checking a valid square on the board
-            if self._is_square_on_board(row_direction,col_direction):
-                detected_piece = board_copy[row_direction][col_direction]
+            if self._is_square_on_board(check_row,check_col):
+                detected_piece = board_copy[check_row][check_col]
                 # checks if square non-empty
                 if detected_piece:
                     # breaks while loop if detects a piece of the same colour
@@ -260,12 +276,30 @@ class Game:
     # Updates a square on chosen board, updates game state board by default
     def _update_square(self,square,piece,board=None):
         row, col = square
-        if not board:
+        if board is None:
             self.board_state[row][col] = piece
         else:
             board[row][col] = piece
 
     # Applies a move to a board without updating any flags like changing is_whites_turn, updates game board by default
     def _apply_move(self,start_sqr,end_sqr,piece,board=None):
+        # runs if we have a king move, handles castling
+        if piece.lower() == 'k':
+            start_row, start_col = start_sqr
+            end_col = end_sqr[1]
+            
+            # if king castles queenside updates rook position
+            if start_col - end_col == 2:
+                rook = self.piece_at((start_row,0),board)
+                self._update_square((start_row,0),None,board)
+                self._update_square((start_row,end_col+1),rook,board)
+            
+            # if king castles kingside updates rook position
+            elif start_col - end_col == -2:
+                rook = self.piece_at((start_row,7),board)
+                self._update_square((start_row,7),None,board)
+                self._update_square((start_row,end_col-1),rook,board)
+        
+        # updates moving piece position
         self._update_square(end_sqr,piece,board)
         self._update_square(start_sqr,None,board)
