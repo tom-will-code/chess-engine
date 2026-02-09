@@ -14,6 +14,10 @@ class Game:
         self.is_whites_move = True
         self.K_position = (7,4)
         self.k_position = (0,4)
+        self.K_can_castle_kingside = True
+        self.K_can_castle_queenside = True
+        self.k_can_castle_kingside = True
+        self.k_can_castle_queenside = True
     
     # Gets piece at a given board sqaure
     def piece_at(self,square):
@@ -45,11 +49,26 @@ class Game:
     # Updates game by making a move (that has already been checked to be legal)
     def make_move(self,start_sqr,end_sqr):
         piece = self.piece_at(start_sqr)
-        # updates king positions if we have a king move
+        # updates king positions and castling rights if we have a king move
         if piece == 'k':
             self.k_position = end_sqr
+            self.k_can_castle_kingside = False
+            self.k_can_castle_queenside = False
         elif piece == 'K':
             self.K_position = end_sqr
+            self.K_can_castle_kingside = False
+            self.K_can_castle_queenside = False
+        # updates castling rights if we have a suitable rook move
+        elif piece == 'r':
+            if self.k_can_castle_kingside and start_sqr == (0,7):
+                self.k_can_castle_kingside = False
+            elif self.k_can_castle_queenside and start_sqr == (0,0):
+                self.k_can_castle_queenside = False
+        elif piece == 'R':
+            if self.K_can_castle_kingside and start_sqr == (7,7):
+                self.K_can_castle_kingside = False
+            elif self.K_can_castle_queenside and start_sqr == (7,0):
+                self.K_can_castle_queenside = False
         # Updates board
         self._apply_move(start_sqr,end_sqr,piece)
         # Updates move status
