@@ -209,8 +209,33 @@ class Game:
                 # break while loop when we reach end of board in one direction
                 else:
                     break
+        # looks for knight checks
+        knight_directions = [(1,2),(1,-2),(-1,2),(-1,-2),(2,1),(2,-1),(-2,1),(-2,-1)]
+        for direction in knight_directions:
+            row_direction, col_direction = direction
+            check_row = king_row + row_direction
+            check_col = king_col + col_direction
+            # checks if we are checking a valid square on the board
+            if self._is_square_on_board(row_direction,col_direction):
+                detected_piece = board_copy[row_direction][col_direction]
+                # checks if square non-empty
+                if detected_piece:
+                    # breaks while loop if detects a piece of the same colour
+                    if king_is_white == detected_piece.isupper():
+                        continue
+                    else:
+                        # checks if there is a knight on square
+                        if detected_piece.lower() == 'n':
+                            return True
+                        # if not a knight continues
+                        else:
+                            continue
         # returns true if no checks detected
         return False
+    
+        
+            
+
        
     
     # Updates a square on chosen board, updates game state board by default
