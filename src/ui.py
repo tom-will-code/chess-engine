@@ -53,6 +53,7 @@ def main():
     square_width = board_width // 8 # // is integer division, .scale expects an int
     for key, img in image_dict.items():
         image_dict[key] = pg.transform.smoothscale(img,(square_width,square_width))
+    
 
     # Define functions
     # ---------------------------------------------------------
@@ -89,7 +90,6 @@ def main():
     
     # Draws the board each frame according to game state from engine and ui dragging info
     def draw_pieces(): # draws pieces according to board state
-        
         # draws board if we are dragging a piece
         if dragging_piece:
             row_intl, col_intl = initial_piece_position
@@ -189,6 +189,6 @@ def main():
     pg.quit()
 
 
-
+# runs our main function
 if __name__ == "__main__":
     main()
