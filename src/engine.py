@@ -114,7 +114,8 @@ class Game:
         return 0 <= row <= 7 and 0 <= col <= 7
     
     # Checks if a piece has a clear path to its target square, used for rook, queen and bishop
-    def _is_path_clear(self,start_sqr,end_sqr):
+    # Default board is game board_state
+    def _is_path_clear(self,start_sqr,end_sqr,board=None):
         # gets correct step in row and column direction to check paths
         start_row, start_col = start_sqr
         end_row, end_col = end_sqr
@@ -128,101 +129,13 @@ class Game:
         while checking_square != end_sqr:
             check_row, check_col = checking_square
             # returns false if a non empty square is detected
-            if self.piece_at(checking_square):
+            if self.piece_at(checking_square,board):
                 return False
             # otherwise increments to next checking square
             else:
                 checking_square = (check_row+row_step,check_col+col_step)
         # returns true if no pieces in the way have been detected in the loop
         return True
-    
-    # Checks is a move is legal but does not account for checks
-    def _is_pseudo_legal_move(self, start_sqr, end_sqr):
-        # unpacks inputs
-        start_row, start_col = start_sqr
-        end_row, end_col = end_sqr
-        row_dif = end_row - start_row
-        col_dif = end_col - start_col
-        # gets the piece that is moving and what is on the target square
-        moving_piece = self.piece_at(start_sqr)
-        target = self.piece_at(end_sqr)
-
-        # stops moves from the same square to the same square
-        if start_sqr == end_sqr:  
-            return False
-        # stops pieces taking pieces of the same colour
-        elif target and moving_piece.isupper() == target.isupper(): 
-            return False
-        else:
-            # Bishop movement rules
-            if moving_piece in ('b','B'):
-                if abs(col_dif) == abs(row_dif):
-                    return self._is_path_clear(start_sqr,end_sqr)
-                else:
-                    return False   
-            # Queen movement rules
-            elif moving_piece in ('q','Q'):
-                # checks diagonal moves
-                if abs(col_dif) == abs(row_dif):
-                    return self._is_path_clear(start_sqr,end_sqr)
-                # checks rook like moves
-                elif col_dif == 0 or row_dif == 0:
-                    return self._is_path_clear(start_sqr,end_sqr)
-                else:
-                    return False
-            # Rook movement rules
-            elif moving_piece in ('r','R'):
-                if col_dif == 0 or row_dif == 0:
-                    return self._is_path_clear(start_sqr,end_sqr) 
-                else:
-                    return False
-            # Knight movement rules
-            elif moving_piece in ('n','N'):
-                return (abs(row_dif) == 2 and abs(col_dif) == 1) or (abs(col_dif)==2 and abs(row_dif)==1)
-            # Pawn movement rules
-            elif moving_piece in ('p','P'):
-                forward_unit = -1 if moving_piece == 'P' else 1
-                starting_rank = 6 if moving_piece == 'P' else 1
-                
-                # checks if moving vertically and not taking a piece
-                if col_dif == 0 and not target: 
-                    # allows one square forward moves
-                    if row_dif == forward_unit:
-                        return True
-                    # allows 2 square first move
-                    elif row_dif == 2*forward_unit:
-                        return start_row == starting_rank and not self.board_state[start_row+forward_unit][start_col]
-                    # otherwise not allowed
-                    else:
-                        return False
-                # allows diagonal captures
-                return abs(col_dif) == 1 and row_dif == forward_unit and target
-            # King movement rules
-            elif moving_piece in ('k','K'):
-                # runs for a normal one square king move
-                if max(abs(row_dif), abs(col_dif)) == 1:
-                    return True
-                else:
-                    return False
-                '''
-                # runs for black king castling
-                elif moving_piece == 'k':
-                    if end_sqr == (0,6) and self.k_can_castle_kingside:
-                        if not self.piece_at(0,6) and not self.piece_at(0,5):
-                            pass
-                    elif end_sqr == (0,1) and self.k_can_castle_queenside:
-                        pass
-                    else:
-                        return False
-                # runs for white king castling
-                elif moving_piece == 'K':
-                    if end_sqr == (7,6) and self.K_can_castle_kingside:
-                        pass
-                    elif end_sqr == (7,1) and self.K_can_castle_queenside:
-                        pass
-                    else:
-                        return False '''
-
     
     # checks if a square is attacked on a board
     def _is_square_attacked(self,square,by_white,board=None):
@@ -319,6 +232,115 @@ class Game:
     def _is_in_check(self,king_position,board=None):
         by_white = self.piece_at(king_position,board).islower()
         return self._is_square_attacked(king_position,by_white,board)
+    
+    # Checks is a move is legal but does not account for checks
+    # Only works on game board at the moment
+    def _is_pseudo_legal_move(self, start_sqr, end_sqr):
+        # unpacks inputs
+        start_row, start_col = start_sqr
+        end_row, end_col = end_sqr
+        row_dif = end_row - start_row
+        col_dif = end_col - start_col
+        # gets the piece that is moving and what is on the target square
+        moving_piece = self.piece_at(start_sqr)
+        target = self.piece_at(end_sqr)
+
+        # stops moves from the same square to the same square
+        if start_sqr == end_sqr:  
+            return False
+        # stops pieces taking pieces of the same colour
+        elif target and moving_piece.isupper() == target.isupper(): 
+            return False
+        else:
+            # Bishop movement rules
+            if moving_piece in ('b','B'):
+                if abs(col_dif) == abs(row_dif):
+                    return self._is_path_clear(start_sqr,end_sqr)
+                else:
+                    return False   
+            # Queen movement rules
+            elif moving_piece in ('q','Q'):
+                # checks diagonal moves
+                if abs(col_dif) == abs(row_dif):
+                    return self._is_path_clear(start_sqr,end_sqr)
+                # checks rook like moves
+                elif col_dif == 0 or row_dif == 0:
+                    return self._is_path_clear(start_sqr,end_sqr)
+                else:
+                    return False
+            # Rook movement rules
+            elif moving_piece in ('r','R'):
+                if col_dif == 0 or row_dif == 0:
+                    return self._is_path_clear(start_sqr,end_sqr) 
+                else:
+                    return False
+            # Knight movement rules
+            elif moving_piece in ('n','N'):
+                return (abs(row_dif) == 2 and abs(col_dif) == 1) or (abs(col_dif)==2 and abs(row_dif)==1)
+            # Pawn movement rules
+            elif moving_piece in ('p','P'):
+                forward_unit = -1 if moving_piece == 'P' else 1
+                starting_rank = 6 if moving_piece == 'P' else 1
+                
+                # checks if moving vertically and not taking a piece
+                if col_dif == 0 and not target: 
+                    # allows one square forward moves
+                    if row_dif == forward_unit:
+                        return True
+                    # allows 2 square first move
+                    elif row_dif == 2*forward_unit:
+                        return start_row == starting_rank and not self.piece_at((start_row+forward_unit,start_col))
+                    # otherwise not allowed
+                    else:
+                        return False
+                # allows diagonal captures
+                return abs(col_dif) == 1 and row_dif == forward_unit and target
+            # King movement rules
+            elif moving_piece in ('k','K'):
+                # runs for a normal one square king move
+                if max(abs(row_dif), abs(col_dif)) == 1:
+                    return True
+                # runs for black king castling
+                # NB: castling logic does not check if will castle into check as this is handled by is_in_check later
+                elif moving_piece == 'k':
+                    # checks if target square is castling one and king has castling rights (kingside)
+                    if end_sqr == (0,6) and self.k_can_castle_kingside:
+                        # checks if path is clear for castling
+                        if not self.piece_at((0,6)) and not self.piece_at((0,5)):
+                            # returns true if king not in check and not castling through check
+                            return not self._is_square_attacked((0,4),True) and not self._is_square_attacked((0,5),True)
+                        else:
+                            return False
+                    # checks if target square is castling one and king has castling rights (queenside)
+                    elif end_sqr == (0,2) and self.k_can_castle_queenside:
+                        # checks if path is clear for castling
+                        if not self.piece_at((0,1)) and not self.piece_at((0,2)) and not self.piece_at((0,3)):
+                            # returns true if king not in check and not castling through check
+                            return not self._is_square_attacked((0,4),True) and not self._is_square_attacked((0,3),True)
+                        else:
+                            return False
+                    else:
+                        return False
+                # runs for white king castling
+                else:
+                    # checks if target square is castling one and king has castling rights (kingside)
+                    if end_sqr == (7,6) and self.K_can_castle_kingside:
+                        # checks if path is clear for castling
+                        if not self.piece_at((7,6)) and not self.piece_at((7,5)):
+                            # returns true if king not in check and not castling through check
+                            return not self._is_square_attacked((7,4),False) and not self._is_square_attacked((7,5),False)
+                        else:
+                            return False
+                    # checks if target square is castling one and king has castling rights (queenside)
+                    elif end_sqr == (7,2) and self.K_can_castle_queenside:
+                        # checks if path is clear for castling
+                        if not self.piece_at((7,1)) and not self.piece_at((7,2)) and not self.piece_at((7,3)):
+                            # returns true if king not in check and not castling through check
+                            return not self._is_square_attacked((7,4),False) and not self._is_square_attacked((7,3),False)
+                        else:
+                            return False
+                    else:
+                        return False
 
     # Updates a square on chosen board, updates game state board by default
     def _update_square(self,square,piece,board=None):
