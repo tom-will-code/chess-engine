@@ -199,19 +199,38 @@ class Game:
                 return abs(col_dif) == 1 and row_dif == forward_unit and target
             # King movement rules
             elif moving_piece in ('k','K'):
-                return max(abs(row_dif), abs(col_dif)) == 1
-            
-    # checks if the king is in check after a move (currently unfinished)
-    def _is_in_check(self,king_position,board_copy):
-        # defines king position
-        king_row, king_col = king_position
-        
-        # determines king colour
-        king_piece = board_copy[king_row][king_col]
-        king_is_white = king_piece.isupper()
+                # runs for a normal one square king move
+                if max(abs(row_dif), abs(col_dif)) == 1:
+                    return True
+                else:
+                    return False
+                '''
+                # runs for black king castling
+                elif moving_piece == 'k':
+                    if end_sqr == (0,6) and self.k_can_castle_kingside:
+                        if not self.piece_at(0,6) and not self.piece_at(0,5):
+                            pass
+                    elif end_sqr == (0,1) and self.k_can_castle_queenside:
+                        pass
+                    else:
+                        return False
+                # runs for white king castling
+                elif moving_piece == 'K':
+                    if end_sqr == (7,6) and self.K_can_castle_kingside:
+                        pass
+                    elif end_sqr == (7,1) and self.K_can_castle_queenside:
+                        pass
+                    else:
+                        return False '''
 
-        # defines direction that is forward for king
-        forward_direction = -1 if king_is_white else 1 # row direction that is forward for king
+    
+    # checks if a square is attacked on a board
+    def _is_square_attacked(self,square,by_white,board=None):
+        # unpacks position
+        row, col = square
+        
+        # defines direction that is forward for attacked side
+        forward_direction = 1 if by_white else -1 
         
         # looks for checks except for knight checks
         directions = [(1,1),(-1,1),(-1,-1),(1,-1),(1,0),(-1,0),(0,1),(0,-1)]
@@ -220,26 +239,27 @@ class Game:
             col_direction = direction[1]
             
             # checks out all valid square in the given directions
-            check_row = king_row + row_direction
-            check_col = king_col + col_direction
+            check_row = row + row_direction
+            check_col = col + col_direction
             while True:
                 # checks if we are checking a valid square on the board
                 if self._is_square_on_board(check_row,check_col):
-                    detected_piece = board_copy[check_row][check_col]
+                    detected_piece = self.piece_at((check_row,check_col),board)
                     # checks if square non-empty
                     if detected_piece:
                         # breaks while loop if detects a piece of the same colour
-                        if king_is_white == detected_piece.isupper():
+                        if by_white != detected_piece.isupper():
                             break
+                        # runs if we find a piece of attacking colour
                         else:
                             # runs if we are on a rook direction
                             if min(abs(row_direction),abs(col_direction)) == 0:
-                                # checks for rook or queen check
+                                # checks for rook or queen attack
                                 if detected_piece.lower() in ('r','q'):
                                     return True
-                                # checks for "king check", implements the you can't move near a king rule
+                                # checks for king attack
                                 elif detected_piece.lower() == 'k':
-                                    if abs(check_row-king_row) == 1 or abs(check_col-king_col) == 1:
+                                    if abs(check_row-row) == 1 or abs(check_col-col) == 1:
                                         return True
                                     else:
                                         break
@@ -247,18 +267,18 @@ class Game:
                                     break
                             # runs if we are on a bishop direction
                             else:
-                                # checks for bishop or queen check
+                                # checks for bishop or queen attack
                                 if detected_piece.lower() in ('b','q'):
                                     return True
-                                # checks for "king check"
+                                # checks for king attack
                                 elif detected_piece.lower() == 'k':
-                                    if abs(check_row-king_row) == 1:
+                                    if abs(check_row-row) == 1:
                                         return True
                                     else:
                                         break
                                 # checks for pawn check
                                 elif detected_piece.lower() == 'p':
-                                    if forward_direction == check_row - king_row: # checks pawn is one square ahead
+                                    if forward_direction == check_row - row: # checks pawn is one square ahead
                                         return True
                                     else:
                                         break
@@ -271,19 +291,19 @@ class Game:
                 # break while loop when we reach end of board in one direction
                 else:
                     break
-        # looks for knight checks
+        # looks for knight attacks
         knight_directions = [(1,2),(1,-2),(-1,2),(-1,-2),(2,1),(2,-1),(-2,1),(-2,-1)]
         for direction in knight_directions:
             row_direction, col_direction = direction
-            check_row = king_row + row_direction
-            check_col = king_col + col_direction
+            check_row = row + row_direction
+            check_col = col + col_direction
             # checks if we are checking a valid square on the board
             if self._is_square_on_board(check_row,check_col):
-                detected_piece = board_copy[check_row][check_col]
+                detected_piece = self.piece_at((check_row,check_col),board)
                 # checks if square non-empty
                 if detected_piece:
                     # breaks while loop if detects a piece of the same colour
-                    if king_is_white == detected_piece.isupper():
+                    if by_white != detected_piece.isupper():
                         continue
                     else:
                         # checks if there is a knight on square
@@ -292,9 +312,13 @@ class Game:
                         # if not a knight continues
                         else:
                             continue
-        # returns true if no checks detected
+        # returns false if no attacks detected
         return False
-    
+
+    # checks if the king is in check when given king position and board
+    def _is_in_check(self,king_position,board=None):
+        by_white = self.piece_at(king_position,board).islower()
+        return self._is_square_attacked(king_position,by_white,board)
 
     # Updates a square on chosen board, updates game state board by default
     def _update_square(self,square,piece,board=None):
