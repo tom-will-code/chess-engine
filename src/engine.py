@@ -22,6 +22,9 @@ class Game:
         self.K_can_castle_queenside = True
         self.k_can_castle_kingside = True
         self.k_can_castle_queenside = True
+
+        # Adds list of past moves
+        self.move_history = []
     
     # Gets piece at a given board sqaure, the default board is the games state board
     def piece_at(self,square,board=None):
@@ -95,6 +98,8 @@ class Game:
         self._apply_move(start_sqr,end_sqr,piece)
         # Updates move status
         self.is_whites_move = not self.is_whites_move
+        # Updates move history
+        self.move_history.append((start_sqr,end_sqr,piece))
 
 
         
