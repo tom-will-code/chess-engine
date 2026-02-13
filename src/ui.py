@@ -187,6 +187,9 @@ def main():
                     init_square, prom_square = promotion_move
                     prom_row, prom_col = prom_square
 
+                    # The code below ensures the four adjacent squares in the column of the promotion square,
+                    # including the promotion square, will act as selection options for promotion pieces
+                    
                     # runs if black is promoting
                     if prom_row == 7:
                         # queens selected
