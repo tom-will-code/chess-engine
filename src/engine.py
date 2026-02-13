@@ -45,7 +45,7 @@ class Position:
             return False
     
     # Returns new position with move applied (presumed legal)
-    def after_move(self,start_sqr,end_sqr,promoting_piece=None):
+    def after_move(self,start_sqr,end_sqr,promoting_piece='q'):
         # creates a copy of the position we can modify
         new_position = self.get_position_copy()
         # gets our pieces that will be involved in the move
@@ -421,7 +421,7 @@ class Game:
         self.move_history = []
     
     # modifies the game position
-    def make_move(self,start_sqr,end_sqr,promoting_piece=None):
+    def make_move(self,start_sqr,end_sqr,promoting_piece='q'):
         piece = self.position.get_piece_at(start_sqr)
         # Updates move history
         self.move_history.append((start_sqr,end_sqr,piece))

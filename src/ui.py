@@ -16,8 +16,11 @@ def main():
     clock = pg.time.Clock()
     running = True
 
+    # Flags for UI to handle piece dragging and pawn promotion
     dragging_piece = None # Piece currently being dragged
     initial_piece_position = None # Location on board piece is dragged from
+    promoting = False # True if user is being queried about what piece to promote to
+    promotion_move = None # Will track what square the player is trying to promote on
 
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
@@ -143,8 +146,8 @@ def main():
             if event.type == pg.QUIT: 
                 running = False
             
-            # Logic for picking up a piece
-            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            # Logic for picking up a piece, won't happen if promoting
+            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and not promoting:
                 clicked_square = get_current_square(event.pos)
                 if clicked_square: # If func returns None, falsy so will not run
                     piece = game.position.get_piece_at(clicked_square) 
@@ -159,16 +162,62 @@ def main():
             
             # Logic for putting down a piece
             elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
+                # gets square we have clicked on board, if not on board returns None
+                clicked_square = get_current_square(event.pos)
+                
+                # runs if a piece is being dragged
                 if dragging_piece:
-                    clicked_square = get_current_square(event.pos)
-                    # Makes move if legal
+                    # Runs if move is legal
                     if clicked_square and game.position.is_legal_move(initial_piece_position,clicked_square):
-                        # Updates game state
-                        game.make_move(initial_piece_position,clicked_square)
+                        # If there is a promotion, switches out of dragging mode into promoting mode
+                        if game.position.is_promotion(initial_piece_position,clicked_square):
+                            promoting = True
+                            promotion_move = (initial_piece_position,clicked_square)
+                        else:
+                            # Updates game state
+                            game.make_move(initial_piece_position,clicked_square)
                         
                     # Stops dragging piece
                     dragging_piece = None
                     initial_piece_position = None
+                
+                # runs if we are promoting a piece
+                elif promoting:
+                    # unpacks promotion move
+                    init_square, prom_square = promotion_move
+                    prom_row, prom_col = prom_square
+
+                    # runs if black is promoting
+                    if prom_row == 7:
+                        # queens selected
+                        if clicked_square == (7,prom_col):
+                            game.make_move(init_square,prom_square,'q')
+                        # rook selected
+                        elif clicked_square == (6,prom_col):
+                            game.make_move(init_square,prom_square,'r')
+                        # bishop selected
+                        elif clicked_square == (5,prom_col):
+                            game.make_move(init_square,prom_square,'b')
+                        # knight selected
+                        elif clicked_square == (4,prom_col):
+                            game.make_move(init_square,prom_square,'n')
+                    else:
+                        # queens selected
+                        if clicked_square == (0,prom_col):
+                            game.make_move(init_square,prom_square,'q')
+                        # rook selected
+                        elif clicked_square == (1,prom_col):
+                            game.make_move(init_square,prom_square,'r')
+                        # bishop selected
+                        elif clicked_square == (2,prom_col):
+                            game.make_move(init_square,prom_square,'b')
+                        # knight selected
+                        elif clicked_square == (3,prom_col):
+                            game.make_move(init_square,prom_square,'n')
+
+                    # Stops promotion mode
+                    promoting = False
+                    promotion_move = None
                     
 
         # Clear screen
