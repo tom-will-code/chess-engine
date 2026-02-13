@@ -95,7 +95,7 @@ def main():
             row_intl, col_intl = initial_piece_position
             for row in range(8):
                 for col in range(8):
-                    piece = game.piece_at((row,col))
+                    piece = game.position.get_piece_at((row,col))
                     on_initial_square = row_intl == row and col_intl == col
                     # executes if there is a piece and we are not on the square that the dragged
                     # piece is from
@@ -114,7 +114,7 @@ def main():
         else:
             for row in range(8):
                 for col in range(8):
-                    piece = game.piece_at((row,col))
+                    piece = game.position.get_piece_at((row,col))
                     if piece: # executes if entry is not None
                         screen.blit(image_dict[piece],(square_width*col,square_width*row))
 
@@ -147,10 +147,10 @@ def main():
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 clicked_square = get_current_square(event.pos)
                 if clicked_square: # If func returns None, falsy so will not run
-                    piece = game.piece_at(clicked_square) 
+                    piece = game.position.get_piece_at(clicked_square) 
                     if piece: # If we have clicked an empty square, won't run
-                        white_moving = piece.isupper() and game.is_whites_move 
-                        black_moving = piece.islower() and not game.is_whites_move
+                        white_moving = piece.isupper() and game.position.is_whites_move 
+                        black_moving = piece.islower() and not game.position.is_whites_move
                         correct_turn = white_moving or black_moving # true if trying to drag a piece on a correct turn
                         if correct_turn:
                             initial_piece_position = clicked_square
@@ -162,7 +162,7 @@ def main():
                 if dragging_piece:
                     clicked_square = get_current_square(event.pos)
                     # Makes move if legal
-                    if clicked_square and game.is_legal_move(initial_piece_position,clicked_square):
+                    if clicked_square and game.position.is_legal_move(initial_piece_position,clicked_square):
                         # Updates game state
                         game.make_move(initial_piece_position,clicked_square)
                         

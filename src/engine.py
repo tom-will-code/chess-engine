@@ -1,44 +1,31 @@
-
-class Game:
-    def __init__(self):
-       # sets board state as usual chess starting position 
-        self.board_state = [
-        ["r","n","b","q","k","b","n","r"],  # Black back rank
-        ["p"]*8,                             # Black pawns
-        [None]*8,                            
-        [None]*8,
-        [None]*8,
-        [None]*8,
-        ["P"]*8,                             # White pawns
-        ["R","N","B","Q","K","B","N","R"]  # White back rank
-        ]
-        # Adds flags for various important game variables, like whether a player can
-        # castle or who's turn to move it is
-        # King positions are stored for check detection
-        self.is_whites_move = True
-        self.K_position = (7,4)
-        self.k_position = (0,4)
-        self.K_can_castle_kingside = True
-        self.K_can_castle_queenside = True
-        self.k_can_castle_kingside = True
-        self.k_can_castle_queenside = True
-
-        # Adds list of past moves
-        self.move_history = []
+# class for storing all important info in a position, and methods that purely access a position
+class Position:
+    def __init__(self,board,is_whites_move,K_position,k_position,
+                 K_cq,K_ck,k_cq,k_ck):
+        self.board = board
+        self.is_whites_move = is_whites_move
+        self.K_position = K_position
+        self.k_position = k_position
+        self.K_cq = K_cq # White king can castle queenside
+        self.K_ck = K_ck # White king can castle kingside
+        self.k_cq = k_cq # Black king can castle queenside
+        self.k_ck = k_ck # Black king can castle kingside
     
-    # Gets piece at a given board sqaure, the default board is the games state board
-    def piece_at(self,square,board=None):
+    # Gets piece at a given board sqaure
+    def get_piece_at(self,square):
         row, col = square
-        # Updates board_state as default
-        if board is None:
-            return self.board_state[row][col]
-        # Updates passed board otherwise
-        else:
-            return board[row][col]
+        return self.board[row][col]
     
-    # Creates a copy of the board state for actions like testing moves
+    # Gets a copy of the board
     def get_board_copy(self):
-        return [row[:] for row in self.board_state]
+        return [row[:] for row in self.board]
+    
+    # Returns a copy of the current position
+    def get_position_copy(self):
+        board_copy = self.get_board_copy()
+        return Position(board_copy, self.is_whites_move,
+                self.K_position, self.k_position,
+                self.K_cq, self.K_ck, self.k_cq, self.k_ck)
     
     # Checks if a move is legal
     def is_legal_move(self,start_sqr,end_sqr):
@@ -50,61 +37,63 @@ class Game:
             else:
                 king_position = self.K_position if self.is_whites_move else self.k_position # runs if we have a non-king move
             # Creates board copy and makes the move on this board then looks for checks
-            moving_piece = self.piece_at(start_sqr)
-            board_copy = self.get_board_copy()
-            self._apply_move(start_sqr,end_sqr,moving_piece,board_copy)
-            return not self._is_in_check(king_position,board_copy)
+            moving_piece = self.get_piece_at(start_sqr)
+            position_copy = self.get_position_copy()
+            position_copy._apply_move(start_sqr,end_sqr,moving_piece)
+            return not position_copy._is_in_check(king_position)
         # move was not pseudolegal so cannot be made
         else:
             return False
-        
-    # Updates game by making a move (that has already been checked to be legal)
-    def make_move(self,start_sqr,end_sqr):
-        piece = self.piece_at(start_sqr)
+    
+    # Returns new position with move applied (presumed legal)
+    def after_move(self,start_sqr,end_sqr):
+        # creates a copy of the position we can modify
+        new_position = self.get_position_copy()
+        # gets our piece that will be moving
+        piece = self.get_piece_at(start_sqr)
+
         # updates king positions and castling rights if we have a king move
         if piece == 'k':
-            self.k_position = end_sqr
-            self.k_can_castle_kingside = False
-            self.k_can_castle_queenside = False
+            new_position.k_position = end_sqr
+            new_position.k_ck = False
+            new_position.k_cq = False
         elif piece == 'K':
-            self.K_position = end_sqr
-            self.K_can_castle_kingside = False
-            self.K_can_castle_queenside = False
+            new_position.K_position = end_sqr
+            new_position.K_ck = False
+            new_position.K_cq = False
         # updates castling rights if we have a suitable rook move
         elif piece == 'r':
-            if self.k_can_castle_kingside and start_sqr == (0,7):
-                self.k_can_castle_kingside = False
-            elif self.k_can_castle_queenside and start_sqr == (0,0):
-                self.k_can_castle_queenside = False
+            if self.k_ck and start_sqr == (0,7):
+                new_position.k_ck = False
+            elif self.k_cq and start_sqr == (0,0):
+                new_position.k_cq = False
         elif piece == 'R':
-            if self.K_can_castle_kingside and start_sqr == (7,7):
-                self.K_can_castle_kingside = False
-            elif self.K_can_castle_queenside and start_sqr == (7,0):
-                self.K_can_castle_queenside = False
+            if self.K_ck and start_sqr == (7,7):
+                new_position.K_ck = False
+            elif self.K_cq and start_sqr == (7,0):
+                new_position.K_cq = False
         
         # updates castling rights if we have a rook capture
-        taken_piece = self.piece_at(end_sqr)
+        taken_piece = self.get_piece_at(end_sqr)
         if taken_piece and taken_piece.lower() == 'r': # if taken_piece stops crash when we have an empty square
-            if self.k_can_castle_kingside and end_sqr == (0,7):
-                self.k_can_castle_kingside = False
-            elif self.k_can_castle_queenside and end_sqr == (0,0):
-                self.k_can_castle_queenside = False
-            elif self.K_can_castle_kingside and end_sqr == (7,7):
-                self.K_can_castle_kingside = False
-            elif self.K_can_castle_queenside and end_sqr == (7,0):
-                self.K_can_castle_queenside = False
+            if self.k_ck and end_sqr == (0,7):
+                new_position.k_ck = False
+            elif self.k_cq and end_sqr == (0,0):
+                new_position.k_cq = False
+            elif self.K_ck and end_sqr == (7,7):
+                new_position.K_ck = False
+            elif self.K_cq and end_sqr == (7,0):
+                new_position.K_cq = False
 
         # Updates board
-        self._apply_move(start_sqr,end_sqr,piece)
+        new_position._apply_move(start_sqr,end_sqr,piece)
         # Updates move status
-        self.is_whites_move = not self.is_whites_move
-        # Updates move history
-        self.move_history.append((start_sqr,end_sqr,piece))
+        new_position.is_whites_move = not self.is_whites_move
+        return new_position
 
-
-        
     # Helper functions
     # --------------------------------------------------------------
+    
     # Used to help define forward and backward directions for pawns
     def _sign(self,number):
         if number > 0:
@@ -119,8 +108,7 @@ class Game:
         return 0 <= row <= 7 and 0 <= col <= 7
     
     # Checks if a piece has a clear path to its target square, used for rook, queen and bishop
-    # Default board is game board_state
-    def _is_path_clear(self,start_sqr,end_sqr,board=None):
+    def _is_path_clear(self,start_sqr,end_sqr):
         # gets correct step in row and column direction to check paths
         start_row, start_col = start_sqr
         end_row, end_col = end_sqr
@@ -134,7 +122,7 @@ class Game:
         while checking_square != end_sqr:
             check_row, check_col = checking_square
             # returns false if a non empty square is detected
-            if self.piece_at(checking_square,board):
+            if self.get_piece_at(checking_square):
                 return False
             # otherwise increments to next checking square
             else:
@@ -143,7 +131,7 @@ class Game:
         return True
     
     # checks if a square is attacked on a board
-    def _is_square_attacked(self,square,by_white,board=None):
+    def _is_square_attacked(self,square,by_white):
         # unpacks position
         row, col = square
         
@@ -162,7 +150,7 @@ class Game:
             while True:
                 # checks if we are checking a valid square on the board
                 if self._is_square_on_board(check_row,check_col):
-                    detected_piece = self.piece_at((check_row,check_col),board)
+                    detected_piece = self.get_piece_at((check_row,check_col))
                     # checks if square non-empty
                     if detected_piece:
                         # breaks while loop if detects a piece of the same colour
@@ -217,7 +205,7 @@ class Game:
             check_col = col + col_direction
             # checks if we are checking a valid square on the board
             if self._is_square_on_board(check_row,check_col):
-                detected_piece = self.piece_at((check_row,check_col),board)
+                detected_piece = self.get_piece_at((check_row,check_col))
                 # checks if square non-empty
                 if detected_piece:
                     # breaks while loop if detects a piece of the same colour
@@ -234,12 +222,11 @@ class Game:
         return False
 
     # checks if the king is in check when given king position and board
-    def _is_in_check(self,king_position,board=None):
-        by_white = self.piece_at(king_position,board).islower()
-        return self._is_square_attacked(king_position,by_white,board)
+    def _is_in_check(self,king_position):
+        by_white = self.get_piece_at(king_position).islower()
+        return self._is_square_attacked(king_position,by_white)
     
-    # Checks is a move is legal but does not account for checks
-    # Only works on game board at the moment
+    # Checks is a move is legal but does not account for checks, assumes that we have a piece on square
     def _is_pseudo_legal_move(self, start_sqr, end_sqr):
         # unpacks inputs
         start_row, start_col = start_sqr
@@ -247,8 +234,8 @@ class Game:
         row_dif = end_row - start_row
         col_dif = end_col - start_col
         # gets the piece that is moving and what is on the target square
-        moving_piece = self.piece_at(start_sqr)
-        target = self.piece_at(end_sqr)
+        moving_piece = self.get_piece_at(start_sqr)
+        target = self.get_piece_at(end_sqr)
 
         # stops moves from the same square to the same square
         if start_sqr == end_sqr:  
@@ -294,14 +281,14 @@ class Game:
                         return True
                     # allows 2 square first move
                     elif row_dif == 2*forward_unit:
-                        return start_row == starting_rank and not self.piece_at((start_row+forward_unit,start_col))
+                        return start_row == starting_rank and not self.get_piece_at((start_row+forward_unit,start_col))
                     # otherwise not allowed
                     else:
                         return False
                 # allows diagonal captures
                 return abs(col_dif) == 1 and row_dif == forward_unit and target
             # King movement rules
-            elif moving_piece in ('k','K'):
+            else:
                 # runs for a normal one square king move
                 if max(abs(row_dif), abs(col_dif)) == 1:
                     return True
@@ -309,17 +296,17 @@ class Game:
                 # NB: castling logic does not check if will castle into check as this is handled by is_in_check later
                 elif moving_piece == 'k':
                     # checks if target square is castling one and king has castling rights (kingside)
-                    if end_sqr == (0,6) and self.k_can_castle_kingside:
+                    if end_sqr == (0,6) and self.k_ck:
                         # checks if path is clear for castling
-                        if not self.piece_at((0,6)) and not self.piece_at((0,5)):
+                        if not self.get_piece_at((0,6)) and not self.get_piece_at((0,5)):
                             # returns true if king not in check and not castling through check
                             return not self._is_square_attacked((0,4),True) and not self._is_square_attacked((0,5),True)
                         else:
                             return False
                     # checks if target square is castling one and king has castling rights (queenside)
-                    elif end_sqr == (0,2) and self.k_can_castle_queenside:
+                    elif end_sqr == (0,2) and self.k_cq:
                         # checks if path is clear for castling
-                        if not self.piece_at((0,1)) and not self.piece_at((0,2)) and not self.piece_at((0,3)):
+                        if not self.get_piece_at((0,1)) and not self.get_piece_at((0,2)) and not self.get_piece_at((0,3)):
                             # returns true if king not in check and not castling through check
                             return not self._is_square_attacked((0,4),True) and not self._is_square_attacked((0,3),True)
                         else:
@@ -329,17 +316,17 @@ class Game:
                 # runs for white king castling
                 else:
                     # checks if target square is castling one and king has castling rights (kingside)
-                    if end_sqr == (7,6) and self.K_can_castle_kingside:
+                    if end_sqr == (7,6) and self.K_ck:
                         # checks if path is clear for castling
-                        if not self.piece_at((7,6)) and not self.piece_at((7,5)):
+                        if not self.get_piece_at((7,6)) and not self.get_piece_at((7,5)):
                             # returns true if king not in check and not castling through check
                             return not self._is_square_attacked((7,4),False) and not self._is_square_attacked((7,5),False)
                         else:
                             return False
                     # checks if target square is castling one and king has castling rights (queenside)
-                    elif end_sqr == (7,2) and self.K_can_castle_queenside:
+                    elif end_sqr == (7,2) and self.K_cq:
                         # checks if path is clear for castling
-                        if not self.piece_at((7,1)) and not self.piece_at((7,2)) and not self.piece_at((7,3)):
+                        if not self.get_piece_at((7,1)) and not self.get_piece_at((7,2)) and not self.get_piece_at((7,3)):
                             # returns true if king not in check and not castling through check
                             return not self._is_square_attacked((7,4),False) and not self._is_square_attacked((7,3),False)
                         else:
@@ -347,32 +334,57 @@ class Game:
                     else:
                         return False
 
-    # Updates a square on chosen board, updates game state board by default
-    def _update_square(self,square,piece,board=None):
+    # Modifies a square on position's board
+    def _update_square(self,square,piece):
         row, col = square
-        # Updates game board by default
-        if board is None:
-            self.board_state[row][col] = piece
-        # Updates passed board otheriwse
-        else:
-            board[row][col] = piece
+        self.board[row][col] = piece
 
-    # Applies a move to a board without updating any flags like changing is_whites_turn, updates game board by default
-    def _apply_move(self,start_sqr,end_sqr,piece,board=None):
+    # Modifies a positions board so that a move is made (presumed legal)
+    def _apply_move(self,start_sqr,end_sqr,piece):
         # runs if we have a king move, handles castling
         if piece.lower() == 'k':
             start_row, start_col = start_sqr
             end_col = end_sqr[1]
             # if king castles queenside updates rook position
             if start_col - end_col == 2:
-                rook = self.piece_at((start_row,0),board)
-                self._update_square((start_row,0),None,board)
-                self._update_square((start_row,end_col+1),rook,board)
+                rook = self.get_piece_at((start_row,0))
+                self._update_square((start_row,0),None)
+                self._update_square((start_row,end_col+1),rook)
             # if king castles kingside updates rook position
             elif start_col - end_col == -2:
-                rook = self.piece_at((start_row,7),board)
-                self._update_square((start_row,7),None,board)
-                self._update_square((start_row,end_col-1),rook,board)
+                rook = self.get_piece_at((start_row,7))
+                self._update_square((start_row,7),None)
+                self._update_square((start_row,end_col-1),rook)
         # updates moving piece position
-        self._update_square(end_sqr,piece,board)
-        self._update_square(start_sqr,None,board)
+        self._update_square(end_sqr,piece)
+        self._update_square(start_sqr,None)
+
+# class for managing evolution of game
+class Game:
+    def __init__(self):
+       # sets board state as usual chess starting position 
+        initial_board_state = [
+        ["r","n","b","q","k","b","n","r"],  # Black back rank
+        ["p"]*8,                             # Black pawns
+        [None]*8,                            
+        [None]*8,
+        [None]*8,
+        [None]*8,
+        ["P"]*8,                             # White pawns
+        ["R","N","B","Q","K","B","N","R"]  # White back rank
+        ]
+        # sets up board state for standard chess starting position
+        self.position = Position(initial_board_state,True,(7,4),(0,4),
+                                 True,True,True,True)
+        
+        # Adds list of past moves
+        self.move_history = []
+    
+    # modifies the game position
+    def make_move(self,start_sqr,end_sqr):
+        piece = self.position.get_piece_at(start_sqr)
+        # Updates move history
+        self.move_history.append((start_sqr,end_sqr,piece))
+        # Updates game position
+        self.position = self.position.after_move(start_sqr,end_sqr)
+    
