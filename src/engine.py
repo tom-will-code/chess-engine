@@ -45,7 +45,7 @@ class Position:
             return False
     
     # Returns new position with move applied (presumed legal)
-    def after_move(self,start_sqr,end_sqr):
+    def after_move(self,start_sqr,end_sqr,promoting_piece=None):
         # creates a copy of the position we can modify
         new_position = self.get_position_copy()
         # gets our pieces that will be involved in the move
@@ -67,6 +67,13 @@ class Position:
                 # has already been updated
                 if end_sqr == self.en_passant_target:
                     new_position._update_square((start_row,end_col),None)
+                # handles promotion by black
+                elif end_row == 7:
+                    piece = promoting_piece.lower()
+                # handles promotion by white
+                elif end_row == 0:
+                    piece = promoting_piece.upper()
+
         # runs when we don't have a pawn move
         else: 
             # updates en passant target
@@ -407,10 +414,10 @@ class Game:
         self.move_history = []
     
     # modifies the game position
-    def make_move(self,start_sqr,end_sqr):
+    def make_move(self,start_sqr,end_sqr,promoting_piece=None):
         piece = self.position.get_piece_at(start_sqr)
         # Updates move history
         self.move_history.append((start_sqr,end_sqr,piece))
         # Updates game position
-        self.position = self.position.after_move(start_sqr,end_sqr)
+        self.position = self.position.after_move(start_sqr,end_sqr,promoting_piece)
     
