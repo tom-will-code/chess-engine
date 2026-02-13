@@ -1,7 +1,7 @@
 # class for storing all important info in a position, and methods that purely access a position
 class Position:
     def __init__(self,board,is_whites_move,K_position,k_position,
-                 K_cq,K_ck,k_cq,k_ck):
+                 K_cq,K_ck,k_cq,k_ck,en_passant_target):
         self.board = board
         self.is_whites_move = is_whites_move
         self.K_position = K_position
@@ -10,6 +10,7 @@ class Position:
         self.K_ck = K_ck # White king can castle kingside
         self.k_cq = k_cq # Black king can castle queenside
         self.k_ck = k_ck # Black king can castle kingside
+        self.en_passant_target = en_passant_target # Potential square that can be moved to by en passant, None if not possible
     
     # Gets piece at a given board sqaure
     def get_piece_at(self,square):
@@ -25,7 +26,7 @@ class Position:
         board_copy = self.get_board_copy()
         return Position(board_copy, self.is_whites_move,
                 self.K_position, self.k_position,
-                self.K_cq, self.K_ck, self.k_cq, self.k_ck)
+                self.K_cq, self.K_ck, self.k_cq, self.k_ck,self.en_passant_target)
     
     # Checks if a move is legal
     def is_legal_move(self,start_sqr,end_sqr):
@@ -37,10 +38,8 @@ class Position:
             else:
                 king_position = self.K_position if self.is_whites_move else self.k_position # runs if we have a non-king move
             # Creates board copy and makes the move on this board then looks for checks
-            moving_piece = self.get_piece_at(start_sqr)
-            position_copy = self.get_position_copy()
-            position_copy._apply_move(start_sqr,end_sqr,moving_piece)
-            return not position_copy._is_in_check(king_position)
+            move_made = self.after_move(start_sqr,end_sqr)
+            return not move_made._is_in_check(king_position)
         # move was not pseudolegal so cannot be made
         else:
             return False
@@ -49,33 +48,71 @@ class Position:
     def after_move(self,start_sqr,end_sqr):
         # creates a copy of the position we can modify
         new_position = self.get_position_copy()
-        # gets our piece that will be moving
+        # gets our pieces that will be involved in the move
         piece = self.get_piece_at(start_sqr)
+        taken_square = self.get_piece_at(end_sqr)
 
-        # updates king positions and castling rights if we have a king move
-        if piece == 'k':
-            new_position.k_position = end_sqr
-            new_position.k_ck = False
-            new_position.k_cq = False
-        elif piece == 'K':
-            new_position.K_position = end_sqr
-            new_position.K_ck = False
-            new_position.K_cq = False
-        # updates castling rights if we have a suitable rook move
-        elif piece == 'r':
-            if self.k_ck and start_sqr == (0,7):
-                new_position.k_ck = False
-            elif self.k_cq and start_sqr == (0,0):
-                new_position.k_cq = False
-        elif piece == 'R':
-            if self.K_ck and start_sqr == (7,7):
-                new_position.K_ck = False
-            elif self.K_cq and start_sqr == (7,0):
-                new_position.K_cq = False
+        # runs if moving piece is a pawn
+        if piece.lower() == 'p':
+            start_row, start_col = start_sqr
+            end_row, end_col = end_sqr
+            # if we have a two square pawn move, updates en_passant_target
+            if abs(start_row-end_row) == 2:
+                forward_dir = 1 if piece == 'p' else -1
+                new_position.en_passant_target = (start_row+forward_dir,start_col)
+            # makes en passant target None
+            else:
+                new_position.en_passant_target = None
+                # Removes take en passant pawn from board, note that it uses old en_passant target as new one 
+                # has already been updated
+                if end_sqr == self.en_passant_target:
+                    new_position._update_square((start_row,end_col),None)
+        # runs when we don't have a pawn move
+        else: 
+            # updates en passant target
+            new_position.en_passant_target = None
+            # updates castling rights if we have a suitable rook move
+            if piece == 'r':
+                if self.k_ck and start_sqr == (0,7):
+                    new_position.k_ck = False
+                elif self.k_cq and start_sqr == (0,0):
+                    new_position.k_cq = False
+            elif piece == 'R':
+                if self.K_ck and start_sqr == (7,7):
+                    new_position.K_ck = False
+                elif self.K_cq and start_sqr == (7,0):
+                    new_position.K_cq = False
+
+            # runs if we have a king move, handles castling
+            elif piece.lower() == 'k':
+                start_row, start_col = start_sqr
+                end_col = end_sqr[1]
+                # if king castles queenside updates rook position
+                if start_col - end_col == 2:
+                    rook = new_position.get_piece_at((start_row,0))
+                    new_position._update_square((start_row,0),None)
+                    new_position._update_square((start_row,end_col+1),rook)
+                # if king castles kingside updates rook position
+                elif start_col - end_col == -2:
+                    rook = new_position.get_piece_at((start_row,7))
+                    new_position._update_square((start_row,7),None)
+                    new_position._update_square((start_row,end_col-1),rook)
+
+                # updates castling flags
+                # runs if white king move
+                if piece == 'k':
+                    new_position.k_position = end_sqr
+                    new_position.k_ck = False
+                    new_position.k_cq = False
+                # runs if left king move
+                else:
+                    new_position.K_position = end_sqr
+                    new_position.K_ck = False
+                    new_position.K_cq = False
+  
         
         # updates castling rights if we have a rook capture
-        taken_piece = self.get_piece_at(end_sqr)
-        if taken_piece and taken_piece.lower() == 'r': # if taken_piece stops crash when we have an empty square
+        if taken_square and taken_square.lower() == 'r': # if taken_piece stops crash when we have an empty square
             if self.k_ck and end_sqr == (0,7):
                 new_position.k_ck = False
             elif self.k_cq and end_sqr == (0,0):
@@ -85,8 +122,11 @@ class Position:
             elif self.K_cq and end_sqr == (7,0):
                 new_position.K_cq = False
 
-        # Updates board
-        new_position._apply_move(start_sqr,end_sqr,piece)
+
+        # updates moving piece position
+        new_position._update_square(end_sqr,piece)
+        new_position._update_square(start_sqr,None)
+        
         # Updates move status
         new_position.is_whites_move = not self.is_whites_move
         return new_position
@@ -285,8 +325,13 @@ class Position:
                     # otherwise not allowed
                     else:
                         return False
-                # allows diagonal captures
-                return abs(col_dif) == 1 and row_dif == forward_unit and target
+                # runs for diagonal moves
+                elif abs(col_dif) == 1 and row_dif == forward_unit:
+                    # allows capture if there is a piece on the square or if it is an en passant target
+                    return target or end_sqr == self.en_passant_target
+                else:
+                    return False
+
             # King movement rules
             else:
                 # runs for a normal one square king move
@@ -339,25 +384,6 @@ class Position:
         row, col = square
         self.board[row][col] = piece
 
-    # Modifies a positions board so that a move is made (presumed legal)
-    def _apply_move(self,start_sqr,end_sqr,piece):
-        # runs if we have a king move, handles castling
-        if piece.lower() == 'k':
-            start_row, start_col = start_sqr
-            end_col = end_sqr[1]
-            # if king castles queenside updates rook position
-            if start_col - end_col == 2:
-                rook = self.get_piece_at((start_row,0))
-                self._update_square((start_row,0),None)
-                self._update_square((start_row,end_col+1),rook)
-            # if king castles kingside updates rook position
-            elif start_col - end_col == -2:
-                rook = self.get_piece_at((start_row,7))
-                self._update_square((start_row,7),None)
-                self._update_square((start_row,end_col-1),rook)
-        # updates moving piece position
-        self._update_square(end_sqr,piece)
-        self._update_square(start_sqr,None)
 
 # class for managing evolution of game
 class Game:
@@ -375,7 +401,7 @@ class Game:
         ]
         # sets up board state for standard chess starting position
         self.position = Position(initial_board_state,True,(7,4),(0,4),
-                                 True,True,True,True)
+                                 True,True,True,True,None)
         
         # Adds list of past moves
         self.move_history = []
