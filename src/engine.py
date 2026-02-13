@@ -137,6 +137,13 @@ class Position:
         # Updates move status
         new_position.is_whites_move = not self.is_whites_move
         return new_position
+    
+    # Returns true if a given move is a promotion
+    def is_promotion(self,start_sqr,end_sqr):
+        end_row = end_sqr[0]
+        piece = self.get_piece_at(start_sqr)
+        return end_row in (0,7) and piece.lower() == 'p'
+        
 
     # Helper functions
     # --------------------------------------------------------------
