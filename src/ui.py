@@ -85,11 +85,18 @@ def main():
    # creates the side panel surface
     def create_side_panel_surface(): # creates the side panel surface
         panel_surface = pg.Surface((panel_width,board_width))
-        background_colour = "gray"
+        dark_grey = (64, 64, 64)
         background = pg.Rect(0,0,panel_width,board_width)
-        pg.draw.rect(panel_surface,background_colour,background)
-
+        pg.draw.rect(panel_surface,dark_grey,background)
         return panel_surface
+    
+    # creates background rectangle from promotion visual
+    def create_promotion_background():
+        surface = pg.Surface((square_width,4*square_width))
+        colour = "gray"
+        rectangle = pg.Rect(0,0,square_width,4*square_width)
+        pg.draw.rect(surface,colour,rectangle)
+        return surface
     
     # Draws the board each frame according to game state from engine and ui dragging info
     def draw_pieces(): # draws pieces according to board state
@@ -99,7 +106,7 @@ def main():
             for row in range(8):
                 for col in range(8):
                     piece = game.position.get_piece_at((row,col))
-                    on_initial_square = row_intl == row and col_intl == col
+                    on_initial_square = initial_piece_position == (row,col)
                     # executes if there is a piece and we are not on the square that the dragged
                     # piece is from
                     if piece and not on_initial_square:
@@ -113,12 +120,43 @@ def main():
                 (mouse_x - square_width // 2, # this math ensures piece is rendered with
                 mouse_y - square_width // 2)  # cursor in middle of the piece
                 )
+            
         # draws board if we are not dragging a piece
-        else:
+        elif promoting:
+            # draws pieces excluding promoting pawn
+            init_square = promotion_move[0]
             for row in range(8):
                 for col in range(8):
                     piece = game.position.get_piece_at((row,col))
-                    if piece: # executes if entry is not None
+                    # runs if we have a piece that is not the pawn to be promoted
+                    if piece and not init_square == (row,col):
+                        screen.blit(image_dict[piece],(square_width*col,square_width*row))
+            
+            # draws promotion graphics
+            prom_row = promotion_move[1][0]
+            prom_col = promotion_move[1][1]
+            if prom_row == 0:
+                screen.blit(create_promotion_background(),(square_width*prom_col,square_width*prom_row))
+                screen.blit(image_dict["Q"],(square_width*prom_col,0))
+                screen.blit(image_dict["R"],(square_width*prom_col,square_width))
+                screen.blit(image_dict["B"],(square_width*prom_col,2*square_width))
+                screen.blit(image_dict["N"],(square_width*prom_col,3*square_width))
+
+            else:
+                screen.blit(create_promotion_background(),(square_width*prom_col,square_width*4))
+                screen.blit(image_dict["q"],(square_width*prom_col,7*square_width))
+                screen.blit(image_dict["r"],(square_width*prom_col,6*square_width))
+                screen.blit(image_dict["b"],(square_width*prom_col,5*square_width))
+                screen.blit(image_dict["n"],(square_width*prom_col,4*square_width))
+        
+        # draws board if we are not dragging a piece
+        else:
+            # draws pieces as seen when not dragging or promoting
+            for row in range(8):
+                for col in range(8):
+                    piece = game.position.get_piece_at((row,col))
+                    # runs if we have a piece 
+                    if piece:
                         screen.blit(image_dict[piece],(square_width*col,square_width*row))
 
     # gets location of square in board state matrix from mouse position
