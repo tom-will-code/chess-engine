@@ -135,10 +135,8 @@ class Position:
         real_moves = []
         for move in pseudo_moves:
             new_pos = self.after_move(*move)
-            # gets king position of moving sides king after move made
-            king_position = new_pos.K_position if self.is_whites_move else new_pos.k_position
             # adds move if not in check
-            if not new_pos._is_in_check(king_position):
+            if not new_pos._is_in_check(self.is_whites_move):
                 real_moves.append(move)
  
         return real_moves
@@ -162,16 +160,12 @@ class Position:
     def _is_square_attacked(self,square,by_white):
         # unpacks position
         row, col = square
-        
         # defines direction that is forward for attacked side
         forward_direction = 1 if by_white else -1 
-        
         # looks for checks except for knight checks
         directions = [(1,1),(-1,1),(-1,-1),(1,-1),(1,0),(-1,0),(0,1),(0,-1)]
         for direction in directions:
-            row_direction = direction[0]
-            col_direction = direction[1]
-            
+            row_direction, col_direction = direction
             # checks out all valid square in the given directions
             check_row = row + row_direction
             check_col = col + col_direction
@@ -250,9 +244,9 @@ class Position:
         return False
 
     # checks if the king is in check when given king position and board
-    def _is_in_check(self,king_position):
-        by_white = self.get_piece_at(king_position).islower()
-        return self._is_square_attacked(king_position,by_white)
+    def _is_in_check(self,white):
+        king_position = self.K_position if white else self.k_position
+        return self._is_square_attacked(king_position, not white)
     
     # Modifies a square on position's board
     def _update_square(self,square,piece):
