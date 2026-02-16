@@ -28,21 +28,7 @@ class Position:
                 self.K_position, self.k_position,
                 self.K_cq, self.K_ck, self.k_cq, self.k_ck,self.en_passant_target)
     
-    # Checks if a move is legal
-    def is_legal_move(self,start_sqr,end_sqr):
-        # checks if move is legal without accounting for checks
-        if self._is_pseudo_legal_move(start_sqr,end_sqr):
-            # Gets what kings position would be after the move
-            if start_sqr == self.k_position or start_sqr == self.K_position: # runs if we have a king move
-                king_position = end_sqr
-            else:
-                king_position = self.K_position if self.is_whites_move else self.k_position # runs if we have a non-king move
-            # Creates board copy and makes the move on this board then looks for checks
-            move_made = self.after_move(start_sqr,end_sqr)
-            return not move_made._is_in_check(king_position)
-        # move was not pseudolegal so cannot be made
-        else:
-            return False
+    
     
     # Returns new position with move applied (presumed legal)
     def after_move(self,start_sqr,end_sqr,promoting_piece='q'):
@@ -153,15 +139,19 @@ class Position:
             new_pos = self.after_move(*move)
             # gets king position of moving sides king after move made
             king_position = new_pos.K_position if self.is_whites_move else new_pos.k_position
-            # doesn't add move if it results in check
-            if new_pos._is_in_check(king_position):
-                continue
             # adds move if not in check
-            else:
+            if not new_pos._is_in_check(king_position):
                 real_moves.append(move)
+ 
         return real_moves
+    
+    # Checks if a move is legal
+    def is_legal_move(self,start_sqr,end_sqr):
+        # gets legal moves in position
+        legal_moves = self.get_legal_moves()
+        # returns true if the attempted move is in legal moves
+        return (start_sqr,end_sqr) in legal_moves
 
-            
 
     # Helper functions
     # --------------------------------------------------------------
