@@ -418,7 +418,36 @@ class Position:
 
     # gets pawn moves
     def _pawn_moves(self,square):
-        pass
+        # unpacks square
+        row,col = square
+        # gets our piece
+        piece = self.get_piece_at(square)
+        # gets our piece colour
+        piece_white = piece.isupper()
+        # defines forward direction
+        forward_direction = -1 if piece_white else 1
+        # initialises move list
+        moves = []
+        # runs if one square forward is empty
+        if not self.get_piece_at((row+forward_direction,col)):
+            moves.append((square,(row+forward_direction,col)))
+            # checks for two square moves
+            home_row = 6 if piece_white else 1
+            # runs if on home row and target square is empty
+            if row == home_row and not self.get_piece_at((row+2*forward_direction,col)):
+                moves.append((square,(row+2*forward_direction,col)))
+        # checks diagonal moves
+        for diagonal in (1,-1):
+            check_row = row + forward_direction
+            check_col = col + diagonal
+            # runs if square on board
+            if self._is_square_on_board(check_row,check_col):
+                detected_piece = self.get_piece_at((check_row,check_col))
+                # runs if we have a diagonal capture or en passant
+                if (detected_piece and detected_piece.isupper() != piece_white) or self.en_passant_target == (check_row,check_col):
+                    moves.append((square,(check_row,check_col)))
+        return moves
+
 
     # gets knight moves
     def _knight_moves(self,square):
