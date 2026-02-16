@@ -1,3 +1,10 @@
+# stores values when summing up pieces
+piece_values = {'p':100,
+                'n':300,
+                'b':320,
+                'r':500,
+                'q':920}
+
 # class for storing all important info in a position, and methods that purely access a position
 class Position:
     def __init__(self,board,is_whites_move=True,K_position=(7,4),k_position=(0,4),
@@ -157,7 +164,33 @@ class Position:
         legal_moves = self.get_legal_moves()
         # returns true if the attempted move is in legal moves
         return (start_sqr,end_sqr) in legal_moves
+    
+    
+    # evaluates a position
+    def evaluate(self):
+        # looks for stalemate and checkmate
+        if self.get_legal_moves() == []:
+            # runs if we have checkmate
+            if self._is_in_check(self.is_whites_move):
+                return float('-inf') if self.is_whites_move else float('inf')
+            # runs if we have stalemate
+            else:
+                return 0
+        
+        # initialises score for non-checkmate, stalemate cases
+        score = 0
+        for row in self.board:
+            for piece in row:
+                # runs for non-empty squares
+                if piece:
+                    # runs for non-king white pieces
+                    if piece.isupper() and piece != 'K':
+                        score += piece_values[piece.lower()]
+                    # runs for non-king black pieces
+                    elif piece.islower() and piece != 'k':
+                        score -= piece_values[piece]
 
+        return score / 100
 
     # Helper functions
     # --------------------------------------------------------------
