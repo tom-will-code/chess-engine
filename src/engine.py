@@ -28,8 +28,6 @@ class Position:
                 self.K_position, self.k_position,
                 self.K_cq, self.K_ck, self.k_cq, self.k_ck,self.en_passant_target)
     
-    
-    
     # Returns new position with move applied (presumed legal)
     def after_move(self,start_sqr,end_sqr,promoting_piece='q'):
         # creates a copy of the position we can modify
@@ -155,42 +153,10 @@ class Position:
 
     # Helper functions
     # --------------------------------------------------------------
-    
-    # Used to help define forward and backward directions for pawns
-    def _sign(self,number):
-        if number > 0:
-            return 1
-        elif number < 0:
-            return -1
-        else:
-            return 0
-        
-    # Checks if a row col combination is on the board
+      
+    # Checks if a row, col combination is on the board
     def _is_square_on_board(self,row,col):
         return 0 <= row <= 7 and 0 <= col <= 7
-    
-    # Checks if a piece has a clear path to its target square, used for rook, queen and bishop
-    def _is_path_clear(self,start_sqr,end_sqr):
-        # gets correct step in row and column direction to check paths
-        start_row, start_col = start_sqr
-        end_row, end_col = end_sqr
-        row_dif = end_row - start_row
-        col_dif = end_col - start_col
-        row_step = self._sign(row_dif)
-        col_step = self._sign(col_dif)
-        
-        # Loops over approriate squares and checks that the path is not blocked
-        checking_square = (start_row+row_step,start_col+col_step)
-        while checking_square != end_sqr:
-            check_row, check_col = checking_square
-            # returns false if a non empty square is detected
-            if self.get_piece_at(checking_square):
-                return False
-            # otherwise increments to next checking square
-            else:
-                checking_square = (check_row+row_step,check_col+col_step)
-        # returns true if no pieces in the way have been detected in the loop
-        return True
     
     # checks if a square is attacked on a board
     def _is_square_attacked(self,square,by_white):
@@ -288,119 +254,6 @@ class Position:
         by_white = self.get_piece_at(king_position).islower()
         return self._is_square_attacked(king_position,by_white)
     
-    # Checks is a move is legal but does not account for checks, assumes that we have a piece on square
-    def _is_pseudo_legal_move(self, start_sqr, end_sqr):
-        # unpacks inputs
-        start_row, start_col = start_sqr
-        end_row, end_col = end_sqr
-        row_dif = end_row - start_row
-        col_dif = end_col - start_col
-        # gets the piece that is moving and what is on the target square
-        moving_piece = self.get_piece_at(start_sqr)
-        target = self.get_piece_at(end_sqr)
-
-        # stops moves from the same square to the same square
-        if start_sqr == end_sqr:  
-            return False
-        # stops pieces taking pieces of the same colour
-        elif target and moving_piece.isupper() == target.isupper(): 
-            return False
-        else:
-            # Bishop movement rules
-            if moving_piece in ('b','B'):
-                if abs(col_dif) == abs(row_dif):
-                    return self._is_path_clear(start_sqr,end_sqr)
-                else:
-                    return False   
-            # Queen movement rules
-            elif moving_piece in ('q','Q'):
-                # checks diagonal moves
-                if abs(col_dif) == abs(row_dif):
-                    return self._is_path_clear(start_sqr,end_sqr)
-                # checks rook like moves
-                elif col_dif == 0 or row_dif == 0:
-                    return self._is_path_clear(start_sqr,end_sqr)
-                else:
-                    return False
-            # Rook movement rules
-            elif moving_piece in ('r','R'):
-                if col_dif == 0 or row_dif == 0:
-                    return self._is_path_clear(start_sqr,end_sqr) 
-                else:
-                    return False
-            # Knight movement rules
-            elif moving_piece in ('n','N'):
-                return (abs(row_dif) == 2 and abs(col_dif) == 1) or (abs(col_dif)==2 and abs(row_dif)==1)
-            # Pawn movement rules
-            elif moving_piece in ('p','P'):
-                forward_unit = -1 if moving_piece == 'P' else 1
-                starting_rank = 6 if moving_piece == 'P' else 1
-                
-                # checks if moving vertically and not taking a piece
-                if col_dif == 0 and not target: 
-                    # allows one square forward moves
-                    if row_dif == forward_unit:
-                        return True
-                    # allows 2 square first move
-                    elif row_dif == 2*forward_unit:
-                        return start_row == starting_rank and not self.get_piece_at((start_row+forward_unit,start_col))
-                    # otherwise not allowed
-                    else:
-                        return False
-                # runs for diagonal moves
-                elif abs(col_dif) == 1 and row_dif == forward_unit:
-                    # allows capture if there is a piece on the square or if it is an en passant target
-                    return target or end_sqr == self.en_passant_target
-                else:
-                    return False
-
-            # King movement rules
-            else:
-                # runs for a normal one square king move
-                if max(abs(row_dif), abs(col_dif)) == 1:
-                    return True
-                # runs for black king castling
-                # NB: castling logic does not check if will castle into check as this is handled by is_in_check later
-                elif moving_piece == 'k':
-                    # checks if target square is castling one and king has castling rights (kingside)
-                    if end_sqr == (0,6) and self.k_ck:
-                        # checks if path is clear for castling
-                        if not self.get_piece_at((0,6)) and not self.get_piece_at((0,5)):
-                            # returns true if king not in check and not castling through check
-                            return not self._is_square_attacked((0,4),True) and not self._is_square_attacked((0,5),True)
-                        else:
-                            return False
-                    # checks if target square is castling one and king has castling rights (queenside)
-                    elif end_sqr == (0,2) and self.k_cq:
-                        # checks if path is clear for castling
-                        if not self.get_piece_at((0,1)) and not self.get_piece_at((0,2)) and not self.get_piece_at((0,3)):
-                            # returns true if king not in check and not castling through check
-                            return not self._is_square_attacked((0,4),True) and not self._is_square_attacked((0,3),True)
-                        else:
-                            return False
-                    else:
-                        return False
-                # runs for white king castling
-                else:
-                    # checks if target square is castling one and king has castling rights (kingside)
-                    if end_sqr == (7,6) and self.K_ck:
-                        # checks if path is clear for castling
-                        if not self.get_piece_at((7,6)) and not self.get_piece_at((7,5)):
-                            # returns true if king not in check and not castling through check
-                            return not self._is_square_attacked((7,4),False) and not self._is_square_attacked((7,5),False)
-                        else:
-                            return False
-                    # checks if target square is castling one and king has castling rights (queenside)
-                    elif end_sqr == (7,2) and self.K_cq:
-                        # checks if path is clear for castling
-                        if not self.get_piece_at((7,1)) and not self.get_piece_at((7,2)) and not self.get_piece_at((7,3)):
-                            # returns true if king not in check and not castling through check
-                            return not self._is_square_attacked((7,4),False) and not self._is_square_attacked((7,3),False)
-                        else:
-                            return False
-                    else:
-                        return False
-
     # Modifies a square on position's board
     def _update_square(self,square,piece):
         row, col = square
