@@ -1,7 +1,7 @@
 # class for storing all important info in a position, and methods that purely access a position
 class Position:
-    def __init__(self,board,is_whites_move,K_position,k_position,
-                 K_cq,K_ck,k_cq,k_ck,en_passant_target):
+    def __init__(self,board,is_whites_move=True,K_position=(7,4),k_position=(0,4),
+                 K_cq=True,K_ck=True,k_cq=True,k_ck=True,en_passant_target=None,legal_moves=None):
         self.board = board
         self.is_whites_move = is_whites_move
         self.K_position = K_position
@@ -11,6 +11,7 @@ class Position:
         self.k_cq = k_cq # Black king can castle queenside
         self.k_ck = k_ck # Black king can castle kingside
         self.en_passant_target = en_passant_target # Potential square that can be moved to by en passant, None if not possible
+        self.legal_moves = legal_moves # caches legal moves in a position
     
     # Gets piece at a given board sqaure
     def get_piece_at(self,square):
@@ -531,8 +532,7 @@ class Game:
         ["R","N","B","Q","K","B","N","R"]  # White back rank
         ]
         # sets up board state for standard chess starting position
-        self.position = Position(initial_board_state,True,(7,4),(0,4),
-                                 True,True,True,True,None)
+        self.position = Position(initial_board_state)
         
         # Adds list of past moves
         self.move_history = []
