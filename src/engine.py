@@ -143,7 +143,25 @@ class Position:
         end_row = end_sqr[0]
         piece = self.get_piece_at(start_sqr)
         return end_row in (0,7) and piece.lower() == 'p'
-        
+
+    
+    # gets legal moves in a position
+    def get_legal_moves(self):
+        pseudo_moves = self._get_pseudo_legal_moves()
+        real_moves = []
+        for move in pseudo_moves:
+            new_pos = self.after_move(*move)
+            # gets king position of moving sides king after move made
+            king_position = new_pos.K_position if self.is_whites_move else new_pos.k_position
+            # doesn't add move if it results in check
+            if new_pos._is_in_check(king_position):
+                continue
+            # adds move if not in check
+            else:
+                real_moves.append(move)
+        return real_moves
+
+            
 
     # Helper functions
     # --------------------------------------------------------------
@@ -397,6 +415,69 @@ class Position:
     def _update_square(self,square,piece):
         row, col = square
         self.board[row][col] = piece
+
+    # gets pawn moves
+    def _pawn_moves(self,square):
+        pass
+
+    # gets knight moves
+    def _knight_moves(self,square):
+        pass
+
+    # gets bishop moves
+    def _bishop_moves(self,square):
+        pass
+
+    # gets rook moves 
+    def _rook_moves(self,square):
+        pass
+
+    # gets king moves
+    def _king_moves(self,square):
+        pass
+
+    # gets queen moves
+    def _queen_moves(self,square):
+        pass
+
+    # gets pseudo-legal moves for a piece in a particular position
+    # assumes piece is correct colour to move
+    def _get_pieces_pseudo_legal_moves(self,square,piece):
+        if piece.lower() == 'p':
+            return self._pawn_moves(square)
+        elif piece.lower() == 'n':
+            return self._knight_moves(square)
+        elif piece.lower() == 'b':
+            return self._bishop_moves(square)
+        elif piece.lower() == 'r':
+            return self._rook_moves(square)
+        elif piece.lower() == 'k':
+            return self._king_moves(square)
+        elif piece.lower() == 'q':
+            return self._queen_moves(square)
+
+    # gets legal moves in a given position
+    def _get_pseudo_legal_moves(self):
+        moves = []
+        # loops over board
+        for row in range(8):
+            for col in range(8):
+                # gets board entry at square
+                piece = self.get_piece_at((row,col))
+                # runs if no piece detected
+                if not piece:
+                    continue
+                # runs if detects an opposition piece
+                elif self.is_whites_move != piece.isupper():
+                    continue
+                # runs if we find a piece with the correct colour
+                else:
+                    new_moves = self._get_pieces_pseudo_legal_moves((row,col),piece)
+                    # adds unpacked list
+                    moves.extend(new_moves)
+        # returns pseudo legal moves
+        return moves
+
 
 
 # class for managing evolution of game
