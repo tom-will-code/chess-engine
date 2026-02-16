@@ -432,7 +432,7 @@ class Position:
     def _rook_moves(self,square):
         # unpacks our start square
         row, col = square
-        # defines directions for rooks checks
+        # defines directions for rooks moves
         directions = [(1,0),(-1,0),(0,1),(0,-1)]
         # initialises move list
         moves = []
@@ -469,7 +469,38 @@ class Position:
 
     # gets queen moves
     def _queen_moves(self,square):
-        pass
+        # unpacks our start square
+        row, col = square
+        # defines initial directions for queens
+        directions = [(1,1),(-1,1),(-1,-1),(1,-1),(1,0),(-1,0),(0,1),(0,-1)]
+        # initialises move list
+        moves = []
+        for direction in directions:
+            row_direction, col_direction = direction
+            # checks out all valid square in the given directions
+            check_row = row + row_direction
+            check_col = col + col_direction
+            while True:
+                # checks if we are checking a valid square on the board
+                if self._is_square_on_board(check_row,check_col):
+                    detected_piece = self.get_piece_at((check_row,check_col))
+                    # checks if square non-empty
+                    if detected_piece:
+                        # breaks while loop if detects a piece of the same colour
+                        if self.is_whites_move == detected_piece.isupper():
+                            break
+                        # runs if we find a piece of opposite colour
+                        else:
+                            moves.append((square,(check_row,check_col)))
+                            break
+                    # if no pieces are detected, continues to next square
+                    else:
+                        moves.append((square,(check_row,check_col)))
+                        check_row += row_direction
+                        check_col += col_direction
+                # break while loop when we reach end of board in one direction
+                else:
+                    break
 
     # gets pseudo-legal moves for a piece in a particular position
     # assumes piece is correct colour to move
