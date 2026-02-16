@@ -121,6 +121,9 @@ class Position:
         
         # Updates move status
         new_position.is_whites_move = not self.is_whites_move
+        # Updates legal moves cache
+        new_position.legal_moves = None
+        
         return new_position
     
     # Returns true if a given move is a promotion
@@ -132,15 +135,21 @@ class Position:
     
     # gets legal moves in a position
     def get_legal_moves(self):
-        pseudo_moves = self._get_pseudo_legal_moves()
-        real_moves = []
-        for move in pseudo_moves:
-            new_pos = self.after_move(*move)
-            # adds move if not in check
-            if not new_pos._is_in_check(self.is_whites_move):
-                real_moves.append(move)
- 
-        return real_moves
+        # accesses cache if it exits
+        if self.legal_moves is not None:
+            return self.legal_moves
+        # otherwise generates moves
+        else:
+            pseudo_moves = self._get_pseudo_legal_moves()
+            real_moves = []
+            for move in pseudo_moves:
+                new_pos = self.after_move(*move)
+                # adds move if not in check
+                if not new_pos._is_in_check(self.is_whites_move):
+                    real_moves.append(move)
+            # caches moves
+            self.legal_moves = real_moves
+            return real_moves
     
     # Checks if a move is legal
     def is_legal_move(self,start_sqr,end_sqr):
