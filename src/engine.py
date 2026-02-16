@@ -280,7 +280,7 @@ class Position:
                 detected_piece = self.get_piece_at((check_row,check_col))
                 # checks if square non-empty
                 if detected_piece:
-                    # breaks while loop if detects a piece of the same colour
+                    # continues while loop if detects a piece of the same colour
                     if by_white != detected_piece.isupper():
                         continue
                     else:
@@ -422,12 +422,37 @@ class Position:
 
     # gets knight moves
     def _knight_moves(self,square):
-        pass
+        # unpacks square
+        row,col = square
+        # gets our piece
+        piece = self.get_piece_at(square)
+        # gets our piece colour
+        piece_white = piece.isupper()
+        # defines knight directions
+        knight_directions = [(1,2),(1,-2),(-1,2),(-1,-2),(2,1),(2,-1),(-2,1),(-2,-1)]
+        # initialises moves list
+        moves = []
+        for direction in knight_directions:
+            row_direction, col_direction = direction
+            check_row = row + row_direction
+            check_col = col + col_direction
+            # checks if we are checking a valid square on the board
+            if self._is_square_on_board(check_row,check_col):
+                detected_piece = self.get_piece_at((check_row,check_col))
+                # runs if we are on an empty square or enemy piece
+                if not (detected_piece and piece_white == detected_piece.isupper()):
+                    moves.append((square,(check_row,check_col)))              
+        return moves
+
 
     # gets bishop moves
     def _bishop_moves(self,square):
         # unpacks our start square
         row, col = square
+        # gets our piece
+        piece = self.get_piece_at(square)
+        # gets our piece colour
+        piece_white = piece.isupper()
         # defines initial directions for bishops
         directions = [(1,1),(-1,1),(-1,-1),(1,-1)]
         # initialises move list
@@ -444,7 +469,7 @@ class Position:
                     # checks if square non-empty
                     if detected_piece:
                         # breaks while loop if detects a piece of the same colour
-                        if self.is_whites_move == detected_piece.isupper():
+                        if piece_white == detected_piece.isupper():
                             break
                         # runs if we find a piece of opposite colour
                         else:
@@ -458,11 +483,16 @@ class Position:
                 # break while loop when we reach end of board in one direction
                 else:
                     break
+        return moves
 
     # gets rook moves 
     def _rook_moves(self,square):
         # unpacks our start square
         row, col = square
+        # gets our piece
+        piece = self.get_piece_at(square)
+        # gets our piece colour
+        piece_white = piece.isupper()
         # defines directions for rooks moves
         directions = [(1,0),(-1,0),(0,1),(0,-1)]
         # initialises move list
@@ -479,7 +509,7 @@ class Position:
                     # checks if square non-empty
                     if detected_piece:
                         # breaks while loop if detects a piece of the same colour
-                        if self.is_whites_move == detected_piece.isupper():
+                        if piece_white == detected_piece.isupper():
                             break
                         # runs if we find a piece of opposite colour
                         else:
@@ -493,6 +523,7 @@ class Position:
                 # break while loop when we reach end of board in one direction
                 else:
                     break
+        return moves
 
     # gets king moves
     def _king_moves(self,square):
@@ -502,6 +533,10 @@ class Position:
     def _queen_moves(self,square):
         # unpacks our start square
         row, col = square
+        # gets our piece
+        piece = self.get_piece_at(square)
+        # gets our piece colour
+        piece_white = piece.isupper()
         # defines initial directions for queens
         directions = [(1,1),(-1,1),(-1,-1),(1,-1),(1,0),(-1,0),(0,1),(0,-1)]
         # initialises move list
@@ -518,7 +553,7 @@ class Position:
                     # checks if square non-empty
                     if detected_piece:
                         # breaks while loop if detects a piece of the same colour
-                        if self.is_whites_move == detected_piece.isupper():
+                        if piece_white == detected_piece.isupper():
                             break
                         # runs if we find a piece of opposite colour
                         else:
@@ -532,6 +567,7 @@ class Position:
                 # break while loop when we reach end of board in one direction
                 else:
                     break
+        return moves
 
     # gets pseudo-legal moves for a piece in a particular position
     # assumes piece is correct colour to move
