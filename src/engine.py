@@ -429,10 +429,10 @@ class Position:
         # gets our piece colour
         piece_white = piece.isupper()
         # defines knight directions
-        knight_directions = [(1,2),(1,-2),(-1,2),(-1,-2),(2,1),(2,-1),(-2,1),(-2,-1)]
+        directions = [(1,2),(1,-2),(-1,2),(-1,-2),(2,1),(2,-1),(-2,1),(-2,-1)]
         # initialises moves list
         moves = []
-        for direction in knight_directions:
+        for direction in directions:
             row_direction, col_direction = direction
             check_row = row + row_direction
             check_col = col + col_direction
@@ -527,7 +527,48 @@ class Position:
 
     # gets king moves
     def _king_moves(self,square):
-        pass
+        # unpacks square
+        row,col = square
+        # gets our piece
+        piece = self.get_piece_at(square)
+        # gets our piece colour
+        piece_white = piece.isupper()
+        # defines king directions
+        directions = [(1,1),(-1,1),(-1,-1),(1,-1),(1,0),(-1,0),(0,1),(0,-1)]
+        # initialises moves list
+        moves = []
+        # handles normal king moves
+        for direction in directions:
+            row_direction, col_direction = direction
+            check_row = row + row_direction
+            check_col = col + col_direction
+            # checks if we are checking a valid square on the board
+            if self._is_square_on_board(check_row,check_col):
+                detected_piece = self.get_piece_at((check_row,check_col))
+                # runs if we are on an empty square or enemy piece
+                if not (detected_piece and piece_white == detected_piece.isupper()):
+                    moves.append((square,(check_row,check_col)))              
+        
+        # handles castling
+        home_row = 7 if piece_white else 0
+        enemy_white = not piece_white
+        
+        # runs if has kingside castling rights
+        if (self.K_ck if piece_white else self.k_ck):
+            # runs if squares between king and rook are empty (kingside)
+            if not self.get_piece_at((home_row,5)) and not self.get_piece_at((home_row,6)):
+                # runs if king not in check or castling through check
+                if not self._is_square_attacked((home_row,4),enemy_white) and not self._is_square_attacked((home_row,5),enemy_white) and not self._is_square_attacked((home_row,6),enemy_white):
+                    moves.append((square,(home_row,6)))
+        # runs if has queenside castling rights
+        if (self.K_cq if piece_white else self.k_cq):
+            # runs if squares between king and rook are empty (queenside)
+            if not self.get_piece_at((home_row,3)) and not self.get_piece_at((home_row,2)) and not self.get_piece_at((home_row,1)):
+                # runs if king not in check or castling through check
+                if not self._is_square_attacked((home_row,4),enemy_white) and not self._is_square_attacked((home_row,3),enemy_white) and not self._is_square_attacked((home_row,2),enemy_white):
+                    moves.append((square,(home_row,2)))
+        
+        return moves
 
     # gets queen moves
     def _queen_moves(self,square):
