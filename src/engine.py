@@ -686,4 +686,26 @@ class Game:
         # returns true if 3 or more instances of the same position
         return positions_to_check.count(last_position) >= 3
 
-    
+    # Searches for best move to a fixed depth
+    def search_to_depth(self,position,depth):
+        # base case
+        if depth == 0:
+            return position.evaluate()
+        
+        # sets the best score as the worst possible score for each side in a position,
+        # so when we are not at the final depth, still returns a value
+        best_score = float('-inf') if position.is_whites_move else float('inf')
+        # initialised best move
+        best_move = None
+
+        # loops over moves available in position
+        for move in position.get_legal_moves():
+            new_position, _ = position.after_move(*move)
+            
+            score = self.search_to_depth(new_position,depth - 1)
+
+            if (position.is_whites_move and score > best_score) or (not position.is_whites_move and score < best_score):
+                best_score = score
+                best_move = move
+        
+        return best_score, best_move
