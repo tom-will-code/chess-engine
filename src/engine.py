@@ -5,10 +5,13 @@ piece_values = {'p':100,
                 'r':500,
                 'q':920}
 
+
+
 # class for storing all important info in a position, and methods that purely access a position
 class Position:
     def __init__(self,board,is_whites_move=True,K_position=(7,4),k_position=(0,4),
-                 K_cq=True,K_ck=True,k_cq=True,k_ck=True,en_passant_target=None,legal_moves=None):
+                 K_cq=True,K_ck=True,k_cq=True,k_ck=True,en_passant_target=None,
+                 legal_moves=None,half_move_clock=0):
         self.board = board
         self.is_whites_move = is_whites_move
         self.K_position = K_position
@@ -19,6 +22,7 @@ class Position:
         self.k_ck = k_ck # Black king can castle kingside
         self.en_passant_target = en_passant_target # Potential square that can be moved to by en passant, None if not possible
         self.legal_moves = legal_moves # caches legal moves in a position
+        self.half_move_clock = half_move_clock
     
     # Gets piece at a given board sqaure
     def get_piece_at(self,square):
@@ -34,7 +38,9 @@ class Position:
         board_copy = self.get_board_copy()
         return Position(board_copy, self.is_whites_move,
                 self.K_position, self.k_position,
-                self.K_cq, self.K_ck, self.k_cq, self.k_ck,self.en_passant_target)
+                self.K_cq, self.K_ck, self.k_cq,
+                self.k_ck,self.en_passant_target,
+                self.legal_moves,self.half_move_clock)
     
     # Returns new position with move applied (presumed legal)
     def after_move(self,start_sqr,end_sqr,promoting_piece='q'):
@@ -46,6 +52,9 @@ class Position:
 
         # runs if moving piece is a pawn
         if piece.lower() == 'p':
+            # updates half move clock to zero
+            new_position.half_move_clock = 0
+            # unpacks square info
             start_row, start_col = start_sqr
             end_row, end_col = end_sqr
             # if we have a two square pawn move, updates en_passant_target
@@ -68,6 +77,11 @@ class Position:
 
         # runs when we don't have a pawn move
         else: 
+            # updates half move clock
+            if taken_square: # runs if we have a capture
+                new_position.half_move_clock = 0
+            else:
+                new_position.half_move_clock += 1
             # updates en passant target
             new_position.en_passant_target = None
             # updates castling rights if we have a suitable rook move
@@ -176,6 +190,10 @@ class Position:
             # runs if we have stalemate
             else:
                 return 0
+        
+        # checks for 50 move draw
+        if self.half_move_clock >= 100:
+            return 0
         
         # initialises score for non-checkmate, stalemate cases
         score = 0
