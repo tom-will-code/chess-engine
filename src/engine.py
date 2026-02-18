@@ -36,11 +36,19 @@ class Position:
     # Returns a copy of the current position
     def get_position_copy(self):
         board_copy = self.get_board_copy()
-        return Position(board_copy, self.is_whites_move,
-                self.K_position, self.k_position,
-                self.K_cq, self.K_ck, self.k_cq,
-                self.k_ck,self.en_passant_target,
-                self.legal_moves,self.half_move_clock)
+        return Position(
+            board=board_copy,
+            is_whites_move=self.is_whites_move,
+            K_position=self.K_position,
+            k_position=self.k_position,
+            K_cq=self.K_cq,
+            K_ck=self.K_ck,
+            k_cq=self.k_cq,
+            k_ck=self.k_ck,
+            en_passant_target=self.en_passant_target,
+            legal_moves=None,
+            half_move_clock=self.half_move_clock
+        )
     
     # Returns new position with move applied (presumed legal)
     def after_move(self,start_sqr,end_sqr,promoting_piece='q'):
@@ -50,8 +58,15 @@ class Position:
         piece = self.get_piece_at(start_sqr)
         taken_square = self.get_piece_at(end_sqr)
 
+        # creates a flag that will be returned when after move is called, it returns true if
+        # a move has been made such that no previous positions can be reached again. This is
+        # used in threefold repitition detection
+        new_position_definitely_reached = False
+
         # runs if moving piece is a pawn
         if piece.lower() == 'p':
+            # updates special repitition flag
+            new_position_definitely_reached = True
             # updates half move clock to zero
             new_position.half_move_clock = 0
             # unpacks square info
@@ -77,24 +92,40 @@ class Position:
 
         # runs when we don't have a pawn move
         else: 
-            # updates half move clock
-            if taken_square: # runs if we have a capture
+            # runs if our move is a capture
+            if taken_square:
+                # updates half move count
                 new_position.half_move_clock = 0
+                # update special repition flag
+                new_position_definitely_reached = True
+            # runs if no capture
             else:
+                # updates half move count
                 new_position.half_move_clock += 1
             # updates en passant target
             new_position.en_passant_target = None
-            # updates castling rights if we have a suitable rook move
+            
+            # updates castling flags for rook moves
+            # runs if black rook moves
             if piece == 'r':
+                # runs if black king can castle kingside and we have kingside castling rook
                 if self.k_ck and start_sqr == (0,7):
                     new_position.k_ck = False
+                    new_position_definitely_reached = True
+                # run if black king can castle queenside and we have queenside castling rook
                 elif self.k_cq and start_sqr == (0,0):
                     new_position.k_cq = False
+                    new_position_definitely_reached = True
+            # runs if white rook moves
             elif piece == 'R':
+                # runs if white king can castle kingside and we have kingside castling rook
                 if self.K_ck and start_sqr == (7,7):
                     new_position.K_ck = False
+                    new_position_definitely_reached = True
+                # runs if white king can castle queenside and we have queenside castling rook
                 elif self.K_cq and start_sqr == (7,0):
                     new_position.K_cq = False
+                    new_position_definitely_reached = True
 
             # runs if we have a king move, handles castling
             elif piece.lower() == 'k':
@@ -112,28 +143,40 @@ class Position:
                     new_position._update_square((start_row,end_col-1),rook)
 
                 # updates castling flags
-                # runs if white king move
+                # runs if black king moves
                 if piece == 'k':
                     new_position.k_position = end_sqr
-                    new_position.k_ck = False
-                    new_position.k_cq = False
-                # runs if left king move
+                    if self.k_ck:
+                        new_position.k_ck = False
+                        new_position_definitely_reached = True
+                    if self.k_cq:
+                        new_position.k_cq = False
+                        new_position_definitely_reached = True
+                # runs if white king moves
                 else:
                     new_position.K_position = end_sqr
-                    new_position.K_ck = False
-                    new_position.K_cq = False
+                    if self.K_ck:
+                        new_position.K_ck = False
+                        new_position_definitely_reached = True
+                    if self.K_cq:
+                        new_position.K_cq = False
+                        new_position_definitely_reached = True
   
         
         # updates castling rights if we have a rook capture
         if taken_square and taken_square.lower() == 'r': # if taken_piece stops crash when we have an empty square
             if self.k_ck and end_sqr == (0,7):
                 new_position.k_ck = False
+                new_position_definitely_reached = True
             elif self.k_cq and end_sqr == (0,0):
                 new_position.k_cq = False
+                new_position_definitely_reached = True
             elif self.K_ck and end_sqr == (7,7):
                 new_position.K_ck = False
+                new_position_definitely_reached = True
             elif self.K_cq and end_sqr == (7,0):
                 new_position.K_cq = False
+                new_position_definitely_reached = True
 
 
         # updates moving piece position
@@ -145,7 +188,7 @@ class Position:
         # Updates legal moves cache
         new_position.legal_moves = None
         
-        return new_position
+        return [new_position,new_position_definitely_reached]
     
     # Returns true if a given move is a promotion
     def is_promotion(self,start_sqr,end_sqr):
@@ -164,7 +207,7 @@ class Position:
             pseudo_moves = self._get_pseudo_legal_moves()
             real_moves = []
             for move in pseudo_moves:
-                new_pos = self.after_move(*move)
+                new_pos = self.after_move(*move)[0]
                 # adds move if not in check
                 if not new_pos._is_in_check(self.is_whites_move):
                     real_moves.append(move)
@@ -579,9 +622,8 @@ class Position:
 
 # class for managing evolution of game
 class Game:
-    def __init__(self):
-       # sets board state as usual chess starting position 
-        initial_board_state = [
+    # saves initial board state
+    initial_board_state = [
         ["r","n","b","q","k","b","n","r"],  # Black back rank
         ["p"]*8,                             # Black pawns
         [None]*8,                            
@@ -591,17 +633,40 @@ class Game:
         ["P"]*8,                             # White pawns
         ["R","N","B","Q","K","B","N","R"]  # White back rank
         ]
+    
+    def __init__(self,board_state=initial_board_state):
         # sets up board state for standard chess starting position
-        self.position = Position(initial_board_state)
+        self.position = Position(board_state)
         
         # Adds list of past moves
         self.move_history = []
+
+        # stores repeatable piece positions
+        self.repeatable_positions = [self.get_position_key(self.position)]
     
+    # gets a key that represents the position for repition checks
+    # NB does not include castling info as list of repeatable positions is automatically cleared
+    # if a change in castling rights is detected
+    def get_position_key(self,position):
+        return (tuple(tuple(row) for row in position.board),
+                position.is_whites_move,
+                position.en_passant_target)
+
     # modifies the game position
     def make_move(self,start_sqr,end_sqr,promoting_piece='q'):
         piece = self.position.get_piece_at(start_sqr)
         # Updates move history
         self.move_history.append((start_sqr,end_sqr,piece))
-        # Updates game position
-        self.position = self.position.after_move(start_sqr,end_sqr,promoting_piece)
+        # Update game position after move and gets info about whether move allows repetitions
+        self.position,breaks_repetitions = self.position.after_move(start_sqr,end_sqr,promoting_piece)
+        # Runs if move made does not allow repetitions
+        if breaks_repetitions:
+            self.repeatable_positions.clear()
+        
+        # gets a key to represent the position
+        position_key = self.get_position_key(self.position)
+        # adds position to list
+        self.repeatable_positions.append(position_key)
+
+
     
