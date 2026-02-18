@@ -211,6 +211,12 @@ class Position:
                 # adds move if not in check
                 if not new_pos._is_in_check(self.is_whites_move):
                     real_moves.append(move)
+                    # adds different kinds of promotion if we have promotion
+                    # queen is promotion piece by default
+                    if self.is_promotion(*move):
+                        real_moves.append((move,'r'))
+                        real_moves.append((move,'b'))
+                        real_moves.append((move,'n'))
             # caches moves
             self.legal_moves = real_moves
             return real_moves
@@ -679,6 +685,5 @@ class Game:
         last_position = positions_to_check[-1]
         # returns true if 3 or more instances of the same position
         return positions_to_check.count(last_position) >= 3
-
 
     
