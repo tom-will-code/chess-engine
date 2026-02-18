@@ -668,5 +668,17 @@ class Game:
         # adds position to list
         self.repeatable_positions.append(position_key)
 
+    # checks if we have threefold repetition
+    def is_threefold_repetition(self):
+        # gets list of positions to check
+        positions_to_check = self.repeatable_positions
+        # returns false if list to short for threefold, 8 halfmoves is minimum no. for threefold rep
+        if len(positions_to_check) <= 7:
+            return False
+        # gets last position
+        last_position = positions_to_check[-1]
+        # returns true if 3 or more instances of the same position
+        return positions_to_check.count(last_position) >= 3
+
 
     
