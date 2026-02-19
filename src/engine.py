@@ -214,9 +214,9 @@ class Position:
                     # adds different kinds of promotion if we have promotion
                     # queen is promotion piece by default
                     if self.is_promotion(*move):
-                        real_moves.append((move,'r'))
-                        real_moves.append((move,'b'))
-                        real_moves.append((move,'n'))
+                        real_moves.append((*move,'r'))
+                        real_moves.append((*move,'b'))
+                        real_moves.append((*move,'n'))
             # caches moves
             self.legal_moves = real_moves
             return real_moves
@@ -226,7 +226,7 @@ class Position:
         # gets legal moves in position
         legal_moves = self.get_legal_moves()
         # returns true if the attempted move is in legal moves
-        return (start_sqr,end_sqr) in legal_moves
+        return (start_sqr,end_sqr) in legal_moves # works for promotion because currently if no entry at end default is queen
     
     
     # evaluates a position
@@ -688,17 +688,20 @@ class Game:
 
     # depth based search, implemenents minimax with alpha beta pruning
     def search_to_depth(self, position, depth, alpha=float('-inf'), beta=float('inf')):
-        # base case, simply evaluates
-        if depth == 0:
-            return position.evaluate()
+        # gets legal moves for search
+        legal_moves = position.get_legal_moves()
+        
+        # evaluates position for terminal nodes, 50-move rule checkmate and stalemate
+        if depth == 0 or legal_moves == []:
+            return position.evaluate(), None # None makes sure we return a tuple
 
         # sets worst possible best scores for each side so there is always a point of comparison
         # for first evaluate score
         best_score = float('-inf') if position.is_whites_move else float('inf')
-        best_move = None
+        best_move = legal_moves[0] # fallback for if all moves lead to mate
 
         # loops through legal moves in position
-        for move in position.get_legal_moves():
+        for move in legal_moves:
             new_position, _ = position.after_move(*move)
             score, _ = self.search_to_depth(new_position, depth - 1, alpha, beta)
 

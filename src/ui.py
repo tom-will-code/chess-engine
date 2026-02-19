@@ -22,6 +22,8 @@ def main():
     promoting = False # True if user is being queried about what piece to promote to
     promotion_move = None # Will track what square the player is trying to promote on
 
+
+
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
     w_knight = pg.image.load("assets/pieces/white-knight.png").convert_alpha()
@@ -102,7 +104,6 @@ def main():
     def draw_pieces(): # draws pieces according to board state
         # draws board if we are dragging a piece
         if dragging_piece:
-            row_intl, col_intl = initial_piece_position
             for row in range(8):
                 for col in range(8):
                     piece = game.position.get_piece_at((row,col))
@@ -214,6 +215,12 @@ def main():
                         else:
                             # Updates game state
                             game.make_move(initial_piece_position,clicked_square)
+                            # Calls engine to search moves up to depth 3
+                            _ , best_move = game.search_to_depth(game.position,3)
+                            if best_move is not None:
+                                game.make_move(*best_move)
+                            else:
+                                print("Game over!")
                         
                     # Stops dragging piece
                     dragging_piece = None
@@ -228,6 +235,8 @@ def main():
                     # The code below ensures the four adjacent squares in the column of the promotion square,
                     # including the promotion square, will act as selection options for promotion pieces
                     
+                    # gets turn state before promotion
+                    old_turn = game.position.is_whites_move
                     # runs if black is promoting
                     if prom_row == 7:
                         # queens selected
@@ -255,6 +264,17 @@ def main():
                         # knight selected
                         elif clicked_square == (3,prom_col):
                             game.make_move(init_square,prom_square,'n')
+                    # gets turn state after promotion
+                    new_turn = game.position.is_whites_move
+
+                    # starts engine search if promotion move is made
+                    if old_turn != new_turn:
+                        # Calls engine to search moves up to depth 3
+                        _ , best_move = game.search_to_depth(game.position,3)
+                        if best_move is not None:
+                            game.make_move(*best_move)
+                        else:
+                            print("Game over!")
 
                     # Stops promotion mode
                     promoting = False
