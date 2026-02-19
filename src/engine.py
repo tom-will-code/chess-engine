@@ -686,26 +686,43 @@ class Game:
         # returns true if 3 or more instances of the same position
         return positions_to_check.count(last_position) >= 3
 
-    # Searches for best move to a fixed depth
-    def search_to_depth(self,position,depth):
-        # base case
+    # depth based search, implemenents minimax with alpha beta pruning
+    def search_to_depth(self, position, depth, alpha=float('-inf'), beta=float('inf')):
+        # base case, simply evaluates
         if depth == 0:
             return position.evaluate()
-        
-        # sets the best score as the worst possible score for each side in a position,
-        # so when we are not at the final depth, still returns a value
+
+        # sets worst possible best scores for each side so there is always a point of comparison
+        # for first evaluate score
         best_score = float('-inf') if position.is_whites_move else float('inf')
-        # initialised best move
         best_move = None
 
-        # loops over moves available in position
+        # loops through legal moves in position
         for move in position.get_legal_moves():
             new_position, _ = position.after_move(*move)
-            
-            score = self.search_to_depth(new_position,depth - 1)
+            score, _ = self.search_to_depth(new_position, depth - 1, alpha, beta)
 
-            if (position.is_whites_move and score > best_score) or (not position.is_whites_move and score < best_score):
-                best_score = score
-                best_move = move
-        
+            # runs if white evaluating, so maximising score
+            if position.is_whites_move:
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+                # updates alpha, the CURRENT best score for white that it can force
+                alpha = max(alpha, best_score)
+            
+            # runs if black evaluating, so minimising score
+            else:
+                if score < best_score:
+                    best_score = score
+                    best_move = move
+                # updates beta, the CURRENT best score for black that it can force
+                beta = min(beta, best_score)
+
+            # breaks out of loop when alpha is greater than beta, as if whites score that
+            # it can force is better than blacks score it can force, this particular branch will
+            # avoided by players
+            # Can think about alpha and beta as a window of possible scores, like alpha = -1 < beta = 2
+            if alpha >= beta:
+                break
+
         return best_score, best_move
