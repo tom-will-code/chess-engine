@@ -1,5 +1,7 @@
 import pygame as pg
 from engine import Game
+import threading
+
 
 def main():
     # Initialise pygame
@@ -22,6 +24,11 @@ def main():
     promoting = False # True if user is being queried about what piece to promote to
     promotion_move = None # Will track what square the player is trying to promote on
 
+    # Flags for handling engine threading. There are in lists so they are mutable
+    # so threading functions can handle them
+    engine_thread = [None]
+    engine_thinking = [False]
+    engine_result = [None]
 
 
     # Load piece images
@@ -62,6 +69,26 @@ def main():
 
     # Define functions
     # ---------------------------------------------------------
+    
+    # used to call engine for search 
+    def engine_worker(game, depth):
+        score, move = game.search_to_depth(game.position, depth)
+        engine_result[0] = move
+        engine_thinking[0] = False
+    
+    # starts engine thread if engine is not thinking
+    def start_engine_search(game, depth=4):
+        if not engine_thinking[0]:
+            engine_thinking[0] = True
+            engine_result[0] = None
+            engine_thread[0] = threading.Thread(
+                target=engine_worker,
+                args=(game, depth),
+                daemon=True
+            )
+            engine_thread[0].start()
+
+
     # Creates the chess board background surface
     def create_board_surface(): 
         board_surface = pg.Surface((board_width,board_width))
@@ -179,6 +206,11 @@ def main():
     # Start game loop
     # ----------------------------------------------------------------
     while running:
+        # makes move if engine has returned a move
+        if engine_result[0] is not None:
+            game.make_move(*engine_result[0])
+            engine_result[0] = None
+        
         # Checks for events in each frame
         for event in pg.event.get():
             # Changes running to false if quit button is pressed
@@ -215,12 +247,10 @@ def main():
                         else:
                             # Updates game state
                             game.make_move(initial_piece_position,clicked_square)
-                            # Calls engine to search moves up to depth 3
-                            _ , best_move = game.search_to_depth(game.position,3)
-                            if best_move is not None:
-                                game.make_move(*best_move)
-                            else:
-                                print("Game over!")
+                            
+                            # starts thread if engine is not already thinking
+                            start_engine_search(game)
+                            
                         
                     # Stops dragging piece
                     dragging_piece = None
@@ -269,12 +299,8 @@ def main():
 
                     # starts engine search if promotion move is made
                     if old_turn != new_turn:
-                        # Calls engine to search moves up to depth 3
-                        _ , best_move = game.search_to_depth(game.position,3)
-                        if best_move is not None:
-                            game.make_move(*best_move)
-                        else:
-                            print("Game over!")
+                        # starts thread if engine is not already thinking
+                        start_engine_search(game)
 
                     # Stops promotion mode
                     promoting = False
