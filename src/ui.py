@@ -44,6 +44,11 @@ def main():
         True,              # antialiasing
         (255, 255, 255)    # text color
     )
+    your_turn_surface = font.render(
+        "Your turn!",
+        True,
+        (255, 255, 255)
+    )
     game_over_surface = font.render(
         "Game over!",
         True,
@@ -336,6 +341,8 @@ def main():
             screen.blit(board_surface,(0,0))
             screen.blit(panel_surface,(board_width,0))
             draw_pieces()
+            # Adds your turn text
+            screen.blit(your_turn_surface,(board_width+panel_width//10,panel_width//10))
             
             # Displays objects on screen
             pg.display.flip()
