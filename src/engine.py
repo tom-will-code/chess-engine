@@ -674,22 +674,24 @@ class Game:
         # adds position to list
         self.repeatable_positions.append(position_key)
 
-    # checks if we have threefold repetition
-    def is_threefold_repetition(self):
-        # gets list of positions to check
-        positions_to_check = self.repeatable_positions
-        # returns false if list to short for threefold, 8 halfmoves is minimum no. for threefold rep
-        if len(positions_to_check) <= 7:
-            return False
-        # gets last position
-        last_position = positions_to_check[-1]
-        # returns true if 3 or more instances of the same position
-        return positions_to_check.count(last_position) >= 3
+    # checks if we have threefold repetition when given a position history, and
+    # returns the key of the passed position if there is no repetition (path is pos history)
+    # only used for search, as it acts as if we have not yet made the move to the new position
+    def is_threefold_repetition(self,position,path):
+        # if length of path is too short, know that no rep has occured
+        if len(path) <= 6:
+            return False, None
+        else:
+            key = self.get_position_key(position)
+            return path.count(key) >= 2, key
 
     # depth based search, implemenents minimax with alpha beta pruning
-    def search_to_depth(self, position, depth, alpha=float('-inf'), beta=float('inf')):
+    def search_to_depth(self,position,depth,path=None,alpha=float('-inf'), beta=float('inf')):
         # gets legal moves for search
         legal_moves = position.get_legal_moves()
+        # gets starting path
+        if path is None:
+            path = self.repeatable_positions
         
         # evaluates position for terminal nodes, 50-move rule checkmate and stalemate
         if depth == 0 or legal_moves == []:
@@ -702,8 +704,28 @@ class Game:
 
         # loops through legal moves in position
         for move in legal_moves:
-            new_position, _ = position.after_move(*move)
-            score, _ = self.search_to_depth(new_position, depth - 1, alpha, beta)
+            # gets position after move, and sees if move irreveribly changes position
+            new_position, breaks = position.after_move(*move)
+            # runs if position permenantly changed
+            if breaks:
+                key = self.get_position_key(new_position)
+                new_path = [key]
+                # recursively calls function to eventually get score
+                score, _ = self.search_to_depth(new_position,depth - 1,new_path,alpha,beta)
+            # checks for threefold repetition
+            else:
+                # checks for threefold and gets new position key
+                # if no threefold
+                is_rep, key = self.is_threefold_repetition(new_position,path)
+                # runs if we have a repetition
+                if is_rep:
+                    score = 0
+                # runs if no repetition
+                else:
+                    new_path = path.copy()
+                    new_path.append(key)
+                    # recursively calls function to eventually get score
+                    score, _ = self.search_to_depth(new_position,depth - 1,new_path,alpha,beta)
 
             # runs if white evaluating, so maximising score
             if position.is_whites_move:
@@ -740,7 +762,14 @@ class Game:
         elif self.position.half_move_clock >= 100:
             return True
         
-        # add threefold detection later
+        # checks for threefold repetition
+        else:
+            pos_key = self.get_position_key(self.position)
+            repeatable_positions = self.repeatable_positions
+            # checks list is long enough for their to be a repetition
+            if len(repeatable_positions) >= 7:
+                # checks if there is threefold repetition
+                return repeatable_positions.count(pos_key) >= 3
 
-        # returns false if these game ending conditions not statified
+        # returns false if these game ending conditions not statisfied
         return False
