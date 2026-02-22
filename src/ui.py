@@ -37,6 +37,13 @@ def main():
     engine_thinking = [False]
     engine_result = [None]
 
+    # Loads font for text and creates text surfaces
+    font = pg.font.Font("assets/fonts/Roboto/static/Roboto-Medium.ttf",22)
+    thinking_surface = font.render(
+        "Engine thinking...",
+        True,              # antialiasing
+        (255, 255, 255)    # text color
+    )
 
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
@@ -355,6 +362,8 @@ def main():
             screen.blit(board_surface,(0,0))
             screen.blit(panel_surface,(board_width,0))
             draw_pieces()
+            # Adds thinking text
+            screen.blit(thinking_surface,(board_width+panel_width//10,panel_width//10))
             
             # Displays objects on screen
             pg.display.flip()
