@@ -266,7 +266,7 @@ def main():
                             else:
                                 # makes move
                                 game.make_move(initial_piece_position,clicked_square)
-                                # updates game state
+                                # updates ui state
                                 if game.is_game_over():
                                     ui_state = UIstate.GAME_OVER
                                 else:
@@ -307,7 +307,7 @@ def main():
 
                         # changes ui_state if move is made
                         if old_turn != new_turn:
-                            # updates game state
+                            # updates ui state
                             if game.is_game_over():
                                 ui_state = UIstate.GAME_OVER
                             else:
