@@ -3,6 +3,13 @@ from engine import Game
 import threading
 
 
+class UIstate():
+    STARTING = 0
+    PlAYERS_MOVE = 1
+    ENGINES_MOVE = 2
+    GAME_OVER = 3
+
+
 def main():
     # Initialise pygame
     pg.init()
@@ -197,127 +204,168 @@ def main():
         else:
             return None
 
-    
+    # Sets uistate as starting
+    ui_state = UIstate.STARTING
+
     # Create surfaces before running game loop
     # ----------------------------------------------------------------
     board_surface = create_board_surface()
     panel_surface = create_side_panel_surface()
+    
 
     # Start game loop
     # ----------------------------------------------------------------
     while running:
-        # makes move if engine has returned a move
-        if engine_result[0] is not None:
-            game.make_move(*engine_result[0])
-            engine_result[0] = None
+        if ui_state == UIstate.STARTING:
+            # Checks for events in each frame
+            for event in pg.event.get():
+                # Changes running to false if quit button is pressed
+                if event.type == pg.QUIT: 
+                    running = False
+            # Automatically changes state to playing for now
+            ui_state = UIstate.PlAYERS_MOVE
         
-        # Checks for events in each frame
-        for event in pg.event.get():
-            # Changes running to false if quit button is pressed
-            if event.type == pg.QUIT: 
-                running = False
-            
-            # Logic for picking up a piece, won't happen if promoting
-            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and not promoting:
-                clicked_square = get_current_square(event.pos)
-                if clicked_square: # If func returns None, falsy so will not run
-                    piece = game.position.get_piece_at(clicked_square) 
-                    if piece: # If we have clicked an empty square, won't run
-                        white_moving = piece.isupper() and game.position.is_whites_move 
-                        black_moving = piece.islower() and not game.position.is_whites_move
-                        correct_turn = white_moving or black_moving # true if trying to drag a piece on a correct turn
-                        if correct_turn:
-                            initial_piece_position = clicked_square
-                            dragging_piece = piece
-                        
-            
-            # Logic for putting down a piece
-            elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
-                # gets square we have clicked on board, if not on board returns None
-                clicked_square = get_current_square(event.pos)
+        elif ui_state == UIstate.PlAYERS_MOVE:
+            # Checks for events in each frame
+            for event in pg.event.get():
+                # Changes running to false if quit button is pressed
+                if event.type == pg.QUIT: 
+                    running = False
                 
-                # runs if a piece is being dragged
-                if dragging_piece:
-                    # Runs if move is legal
-                    if clicked_square and game.position.is_legal_move(initial_piece_position,clicked_square):
-                        # If there is a promotion, switches out of dragging mode into promoting mode
-                        if game.position.is_promotion(initial_piece_position,clicked_square):
-                            promoting = True
-                            promotion_move = (initial_piece_position,clicked_square)
-                        else:
-                            # Updates game state
-                            game.make_move(initial_piece_position,clicked_square)
-                            
-                            # starts thread if engine is not already thinking
-                            start_engine_search(game)
-                            
-                        
-                    # Stops dragging piece
-                    dragging_piece = None
-                    initial_piece_position = None
+                # Logic for picking up a piece when not promoting
+                elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and not promoting:
+                    clicked_square = get_current_square(event.pos)
+                    # checks if we have clicked a square on board
+                    if clicked_square:
+                        piece = game.position.get_piece_at(clicked_square) 
+                        # runs if we haven't clicked an empty square
+                        if piece: 
+                            # can only play engine as white currently
+                            correct_turn = piece.isupper()
+                            # if picked up white piece, saves piece and its initial position
+                            if correct_turn:
+                                initial_piece_position = clicked_square
+                                dragging_piece = piece
                 
-                # runs if we are promoting a piece
-                elif promoting:
-                    # unpacks promotion move
-                    init_square, prom_square = promotion_move
-                    prom_row, prom_col = prom_square
-
-                    # The code below ensures the four adjacent squares in the column of the promotion square,
-                    # including the promotion square, will act as selection options for promotion pieces
+                # Logic for putting down a piece (can't put down when promoting as picking up a piece is blocked)
+                elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
+                    # gets square we have clicked on board, if not on board returns None
+                    clicked_square = get_current_square(event.pos)
                     
-                    # gets turn state before promotion
-                    old_turn = game.position.is_whites_move
-                    # runs if black is promoting
-                    if prom_row == 7:
-                        # queens selected
-                        if clicked_square == (7,prom_col):
-                            game.make_move(init_square,prom_square,'q')
-                        # rook selected
-                        elif clicked_square == (6,prom_col):
-                            game.make_move(init_square,prom_square,'r')
-                        # bishop selected
-                        elif clicked_square == (5,prom_col):
-                            game.make_move(init_square,prom_square,'b')
-                        # knight selected
-                        elif clicked_square == (4,prom_col):
-                            game.make_move(init_square,prom_square,'n')
-                    else:
-                        # queens selected
-                        if clicked_square == (0,prom_col):
-                            game.make_move(init_square,prom_square,'q')
-                        # rook selected
-                        elif clicked_square == (1,prom_col):
-                            game.make_move(init_square,prom_square,'r')
-                        # bishop selected
-                        elif clicked_square == (2,prom_col):
-                            game.make_move(init_square,prom_square,'b')
-                        # knight selected
-                        elif clicked_square == (3,prom_col):
-                            game.make_move(init_square,prom_square,'n')
-                    # gets turn state after promotion
-                    new_turn = game.position.is_whites_move
-
-                    # starts engine search if promotion move is made
-                    if old_turn != new_turn:
-                        # starts thread if engine is not already thinking
-                        start_engine_search(game)
-
-                    # Stops promotion mode
-                    promoting = False
-                    promotion_move = None
+                    # runs if a piece is being dragged
+                    if dragging_piece:
+                        # Runs if move is legal
+                        if clicked_square and game.position.is_legal_move(initial_piece_position,clicked_square):
+                            # If there is a promotion, switches out of dragging mode into promoting mode
+                            if game.position.is_promotion(initial_piece_position,clicked_square):
+                                # saves promotion move
+                                promotion_move = (initial_piece_position,clicked_square)
+                                # changes promoting flag
+                                promoting = True
+                            # otherwise makes the move
+                            else:
+                                # makes move
+                                game.make_move(initial_piece_position,clicked_square)
+                                # updates game state
+                                if game.is_game_over():
+                                    ui_state = UIstate.GAME_OVER
+                                else:
+                                    ui_state = UIstate.ENGINES_MOVE
                     
+                        # Stops dragging piece when non-valid square is clicked
+                        dragging_piece = None
+                        initial_piece_position = None
 
-        # Clear screen
-        screen.fill("white")
-        
-        # Render objects
-        screen.blit(board_surface,(0,0))
-        screen.blit(panel_surface,(board_width,0))
-        draw_pieces()
-        
-        # Displays objects on screen
-        pg.display.flip()
+                    # runs if we are promoting a piece
+                    elif promoting:
+                        # unpacks promotion move
+                        init_square, prom_square = promotion_move
+                        prom_row, prom_col = prom_square
 
+                        # The code below ensures the four adjacent squares in the column of the promotion square,
+                        # including the promotion square, will act as selection options for promotion pieces
+                        
+                        # gets turn state before promotion
+                        old_turn = game.position.is_whites_move
+                        
+                        # runs if white promotion, black no inlcuded as a player yet
+                        if prom_row == 0:
+                            # queens selected
+                            if clicked_square == (0,prom_col):
+                                game.make_move(init_square,prom_square,'q')
+                            # rook selected
+                            elif clicked_square == (1,prom_col):
+                                game.make_move(init_square,prom_square,'r')
+                            # bishop selected
+                            elif clicked_square == (2,prom_col):
+                                game.make_move(init_square,prom_square,'b')
+                            # knight selected
+                            elif clicked_square == (3,prom_col):
+                                game.make_move(init_square,prom_square,'n')
+                        # gets turn state after promotion
+                        new_turn = game.position.is_whites_move
+
+                        # changes ui_state if move is made
+                        if old_turn != new_turn:
+                            # updates game state
+                            if game.is_game_over():
+                                ui_state = UIstate.GAME_OVER
+                            else:
+                                ui_state = UIstate.ENGINES_MOVE
+
+                        # Stops promotion mode
+                        promoting = False
+                        promotion_move = None
+
+            # Clear screen
+            screen.fill("white")
+            
+            # Render objects
+            screen.blit(board_surface,(0,0))
+            screen.blit(panel_surface,(board_width,0))
+            draw_pieces()
+            
+            # Displays objects on screen
+            pg.display.flip()
+
+
+        elif ui_state == UIstate.ENGINES_MOVE:
+            # makes move if engine has returned a move
+            if engine_result[0] is not None:
+                game.make_move(*engine_result[0])
+                engine_result[0] = None
+                # updates ui_state
+                if game.is_game_over():
+                    ui_state = UIstate.GAME_OVER
+                else:
+                    ui_state = UIstate.PlAYERS_MOVE
+            # starts engine search if not already started
+            else:
+                start_engine_search(game)
+            
+            # Checks for events in each frame
+            for event in pg.event.get():
+                # Changes running to false if quit button is pressed
+                if event.type == pg.QUIT: 
+                    running = False
+            # Clear screen
+            screen.fill("white")
+            
+            # Render objects
+            screen.blit(board_surface,(0,0))
+            screen.blit(panel_surface,(board_width,0))
+            draw_pieces()
+            
+            # Displays objects on screen
+            pg.display.flip()
+
+        elif ui_state == UIstate.GAME_OVER:
+            # Checks for events in each frame
+            for event in pg.event.get():
+                # Changes running to false if quit button is pressed
+                if event.type == pg.QUIT: 
+                    running = False
+        
         # Limits fps to 60
         clock.tick(60)
     

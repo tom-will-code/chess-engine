@@ -729,3 +729,18 @@ class Game:
                 break
 
         return best_score, best_move
+    
+    # checks if game is over
+    def is_game_over(self):
+        # looks for stalemate and checkmate
+        if self.position.get_legal_moves() == []:
+            return True
+        
+        # checks for 50 move draw
+        elif self.position.half_move_clock >= 100:
+            return True
+        
+        # add threefold detection later
+
+        # returns false if these game ending conditions not statified
+        return False
