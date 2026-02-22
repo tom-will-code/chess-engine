@@ -44,6 +44,11 @@ def main():
         True,              # antialiasing
         (255, 255, 255)    # text color
     )
+    game_over_surface = font.render(
+        "Game over!",
+        True,
+        (255, 255, 255) 
+    )
 
     # Load piece images
     w_pawn = pg.image.load("assets/pieces/white-pawn.png").convert_alpha() # convert alpha keeps the transpenerency of the pngs
@@ -374,7 +379,20 @@ def main():
                 # Changes running to false if quit button is pressed
                 if event.type == pg.QUIT: 
                     running = False
-        
+
+            # Clear screen
+            screen.fill("white")
+            
+            # Render objects
+            screen.blit(board_surface,(0,0))
+            screen.blit(panel_surface,(board_width,0))
+            draw_pieces()
+
+            # Adds game over text
+            screen.blit(game_over_surface,(board_width+panel_width//10,panel_width//10))
+            # Displays objects on screen
+            pg.display.flip()
+
         # Limits fps to 60
         clock.tick(60)
     
