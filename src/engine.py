@@ -3,8 +3,8 @@ piece_values = {'p':100,
                 'n':300,
                 'b':320,
                 'r':500,
-                'q':920}
-
+                'q':920
+                }
 
 
 # class for storing all important info in a position, and methods that purely access a position
@@ -60,12 +60,12 @@ class Position:
 
         # creates a flag that will be returned when after move is called, it returns true if
         # a move has been made such that no previous positions can be reached again. This is
-        # used in threefold repitition detection
+        # used in threefold repetition detection
         new_position_definitely_reached = False
 
         # runs if moving piece is a pawn
         if piece.lower() == 'p':
-            # updates special repitition flag
+            # updates special repetition flag
             new_position_definitely_reached = True
             # updates half move clock to zero
             new_position.half_move_clock = 0
@@ -79,7 +79,7 @@ class Position:
             # makes en passant target None
             else:
                 new_position.en_passant_target = None
-                # Removes take en passant pawn from board, note that it uses old en_passant target as new one 
+                # Removes taken en passant pawn from board, note that it uses old en_passant target as new one 
                 # has already been updated
                 if end_sqr == self.en_passant_target:
                     new_position._update_square((start_row,end_col),None)
@@ -211,12 +211,6 @@ class Position:
                 # adds move if not in check
                 if not new_pos._is_in_check(self.is_whites_move):
                     real_moves.append(move)
-                    # adds different kinds of promotion if we have promotion
-                    # queen is promotion piece by default
-                    if self.is_promotion(*move):
-                        real_moves.append((*move,'r'))
-                        real_moves.append((*move,'b'))
-                        real_moves.append((*move,'n'))
             # caches moves
             self.legal_moves = real_moves
             return real_moves
@@ -226,7 +220,8 @@ class Position:
         # gets legal moves in position
         legal_moves = self.get_legal_moves()
         # returns true if the attempted move is in legal moves
-        return (start_sqr,end_sqr) in legal_moves # works for promotion because currently if no entry at end default is queen
+        # queen portion is for if these is a promotion
+        return ((start_sqr,end_sqr) in legal_moves) or ((start_sqr,end_sqr,'q') in legal_moves)
     
     
     # evaluates a position
@@ -375,24 +370,53 @@ class Position:
         forward_direction = -1 if piece_white else 1
         # initialises move list
         moves = []
+        # gets promotion row
+        promotion_row = 0 if piece_white else 7
+
+
         # runs if one square forward is empty
         if not self.get_piece_at((row+forward_direction,col)):
-            moves.append((square,(row+forward_direction,col)))
-            # checks for two square moves
-            home_row = 6 if piece_white else 1
-            # runs if on home row and target square is empty
-            if row == home_row and not self.get_piece_at((row+2*forward_direction,col)):
-                moves.append((square,(row+2*forward_direction,col)))
+            # runs if promoting
+            if promotion_row == row + forward_direction:
+                end_sqr = (row+forward_direction,col)
+                moves.append((square,end_sqr,'q'))
+                moves.append((square,end_sqr,'r'))
+                moves.append((square,end_sqr,'b'))
+                moves.append((square,end_sqr,'n'))
+            # runs if not promoting
+            else:
+                # adds standard forward move
+                moves.append((square,(row+forward_direction,col)))
+                # calculates home row from promotion row
+                home_row = promotion_row - 6*forward_direction
+                
+                # runs if on home row and target square is empty
+                if row == home_row and not self.get_piece_at((row+2*forward_direction,col)):
+                    moves.append((square,(row+2*forward_direction,col)))
+
+            
         # checks diagonal moves
         for diagonal in (1,-1):
             check_row = row + forward_direction
             check_col = col + diagonal
+            check_sqr = (check_row,check_col)
             # runs if square on board
             if self._is_square_on_board(check_row,check_col):
-                detected_piece = self.get_piece_at((check_row,check_col))
-                # runs if we have a diagonal capture or en passant
-                if (detected_piece and detected_piece.isupper() != piece_white) or self.en_passant_target == (check_row,check_col):
-                    moves.append((square,(check_row,check_col)))
+                detected_piece = self.get_piece_at(check_sqr)
+                # runs if we have a diagonal capture
+                if (detected_piece and detected_piece.isupper() != piece_white):
+                    # runs if promoting
+                    if promotion_row == check_row:
+                        moves.append((square,check_sqr,'q'))
+                        moves.append((square,check_sqr,'r'))
+                        moves.append((square,check_sqr,'b'))
+                        moves.append((square,check_sqr,'n'))
+                    # runs if not promoting
+                    else:
+                        moves.append((square,check_sqr))
+                # runs if we have en passant
+                elif self.en_passant_target == check_sqr:
+                    moves.append((square,check_sqr))
         return moves
 
 
@@ -701,6 +725,27 @@ class Game:
         # for first evaluate score
         best_score = float('-inf') if position.is_whites_move else float('inf')
         best_move = legal_moves[0] # fallback for if all moves lead to mate
+
+        # reorders legal moves so best moves are likely to be early in list, resulting
+        # in more efficient alpha beta pruning
+        '''
+        ordered_moves = []
+        likely_good_moves = []
+        likely_worse_moves = []
+        promotion_detected = False
+        
+        for move in legal_moves:
+            start_sqr = move[0]
+            target_square = move[1]
+            
+            if len(move) == 3 and not promotion_detected:
+                likely_good_moves.append(start_sqr,target_square,'q')
+
+        '''
+
+
+
+            
 
         # loops through legal moves in position
         for move in legal_moves:
