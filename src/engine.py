@@ -3,8 +3,7 @@ piece_values = {'p':100,
                 'n':300,
                 'b':320,
                 'r':500,
-                'q':920,
-                'k':0
+                'q':920
                 }
 
 
@@ -750,8 +749,10 @@ class Game:
             if target_piece:
                 moving_piece_type = moving_piece.lower()
                 target_piece_type = target_piece.lower()
-                # + 10 is added to prefer even trades over non-captures
-                score += piece_values[target_piece_type] - piece_values[moving_piece_type] + 10
+                # ignores king captures for now
+                if moving_piece_type != 'k':
+                    # + 10 is added to prefer even trades over non-captures
+                    score += piece_values[target_piece_type] - piece_values[moving_piece_type] + 10
             
             return score
         # sorts list of moves using our scoring function
