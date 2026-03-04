@@ -3,7 +3,8 @@ piece_values = {'p':100,
                 'n':300,
                 'b':320,
                 'r':500,
-                'q':920
+                'q':920,
+                'k':0
                 }
 
 
@@ -708,6 +709,55 @@ class Game:
         else:
             key = self.get_position_key(position)
             return path.count(key) >= 2, key
+    
+    # reorders legal moves so best moves are likely to be early in list, resulting
+    # in more efficient alpha beta pruning
+    def order_moves(self,position,moves):
+        # function to score each type of move so they can be sorted with this as the key
+        def score_move(move):
+            score = 0
+            
+            start_sqr = move[0]
+            end_sqr = move[1]
+            moving_piece = position.get_piece_at(start_sqr)
+            target_piece = position.get_piece_at(end_sqr)
+            
+            # runs if we have a promotion that is not a capture
+            # adds value of promoted piece to score minus pawn value
+            if len(move) == 3 and not target_piece:
+                promotion_piece = move[2]
+                if promotion_piece == 'q':
+                    score += 800
+                elif promotion_piece == 'r':
+                    score += 400
+                elif promotion_piece == 'b':
+                    score += 220
+                else:
+                    score += 200
+            # runs if we have promotion capture, add value of promoted piece as
+            # pawn value will be subtracted later
+            elif len(move) == 3:
+                promotion_piece = move[2]
+                if promotion_piece == 'q':
+                    score += 800
+                elif promotion_piece == 'r':
+                    score += 400
+                elif promotion_piece == 'b':
+                    score += 220
+                else:
+                    score += 200
+            # runs if we have a capture, scores capture like we have made a trade
+            if target_piece:
+                moving_piece_type = moving_piece.lower()
+                target_piece_type = target_piece.lower()
+                # + 10 is added to prefer even trades over non-captures
+                score += piece_values[target_piece_type] - piece_values[moving_piece_type] + 10
+            
+            return score
+        # sorts list of moves using our scoring function
+        return sorted(moves,key=score_move,reverse=True)
+
+        
 
     # depth based search, implemenents minimax with alpha beta pruning
     def search_to_depth(self,position,depth,path=None,alpha=float('-inf'), beta=float('inf')):
@@ -726,29 +776,12 @@ class Game:
         best_score = float('-inf') if position.is_whites_move else float('inf')
         best_move = legal_moves[0] # fallback for if all moves lead to mate
 
-        # reorders legal moves so best moves are likely to be early in list, resulting
-        # in more efficient alpha beta pruning
-        '''
-        ordered_moves = []
-        likely_good_moves = []
-        likely_worse_moves = []
-        promotion_detected = False
-        
-        for move in legal_moves:
-            start_sqr = move[0]
-            target_square = move[1]
-            
-            if len(move) == 3 and not promotion_detected:
-                likely_good_moves.append(start_sqr,target_square,'q')
+        # add move ordering
+        ordered_moves = self.order_moves(position,legal_moves)
 
-        '''
-
-
-
-            
 
         # loops through legal moves in position
-        for move in legal_moves:
+        for move in ordered_moves:
             # gets position after move, and sees if move irreveribly changes position
             new_position, breaks = position.after_move(*move)
             # runs if position permenantly changed
